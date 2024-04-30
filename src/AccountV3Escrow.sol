@@ -8,7 +8,6 @@ import {SafeERC20} from "openzeppelin/token/ERC20/utils/SafeERC20.sol";
 
 contract AccountV3Escrow is AccountV3 {
     using SafeERC20 for IERC20;
-    address private _escrowToken;
     
     constructor(
         address entryPoint_,
@@ -19,14 +18,14 @@ contract AccountV3Escrow is AccountV3 {
 
     function approve() public {
         (, address tokenContract, ) = token();
-        _escrowToken = IDealNFT(tokenContract).escrowToken();
-        IERC20(_escrowToken).safeApprove(tokenContract, type(uint256).max);
+        IERC20 escrowToken = IDealNFT(tokenContract).escrowToken();
+        escrowToken.safeApprove(tokenContract, type(uint256).max);
     }
 
     function _beforeExecute(address to, uint256 value, bytes memory data, uint8 operation) internal override {
         (, address tokenContract, ) = token();
-        _escrowToken = IDealNFT(tokenContract).escrowToken();
-        require(to != _escrowToken, "Cannot use the escrow token");
+        IERC20 escrowToken = IDealNFT(tokenContract).escrowToken();
+        require(to != address(escrowToken), "Cannot use the escrow token");
         super._beforeExecute(to, value, data, operation);
     }
 }
