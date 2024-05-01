@@ -6,7 +6,7 @@ import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
 import {Ownable} from "openzeppelin/access/Ownable.sol";
 import {SafeERC20} from "openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import {IERC6551Registry} from "erc6551/interfaces/IERC6551Registry.sol";
-import {AccountV3Escrow} from "./AccountV3Escrow.sol";
+import {AccountV3TBD} from "./AccountV3TBD.sol";
 import {IDealNFT} from "./interfaces/IDealNFT.sol";
 
 contract DealNFT is ERC721, Ownable, IDealNFT {
@@ -15,23 +15,25 @@ contract DealNFT is ERC721, Ownable, IDealNFT {
     event Deal(address indexed sponsorAddress, address escrowToken, uint256 closingTimestamp);
     event Stake(address indexed staker, address indexed walletAddress, uint256 tokenId, uint256 amount);
     event Unstake(address indexed tokenBoundAccount, address indexed nftOwner, uint256 tokenId, uint256 amount);
-    event Close(address indexed sponsorAddress, uint256 tokenId, uint256 amount);
-
-    error OwnerMismatch();
+    event Claim(address indexed sponsorAddress, uint256 tokenId, uint256 amount);
 
     uint256 private _tokenId;
-    string public nftURI;
+    uint256 private claimTokenId;
+
+    string private nftURI;
     
-    IERC6551Registry public registry;
-    AccountV3Escrow public implementation;
+    IERC6551Registry private registry;
+    AccountV3TBD private implementation;
 
     address public sponsorAddress;
     IERC20 public escrowToken;
     uint256 public closingTimestamp;
 
-    uint256 public totalDeposited;
+    uint256 public totalStaked;
+    uint256 public totalClaimed;
 
-    mapping(uint256 tokenId => uint256) public amountOf;
+    mapping(uint256 tokenId => uint256) public stakedAmount;
+    mapping(uint256 tokenId => uint256) public claimedAmount;
 
     constructor(
         string memory nftURI_,
@@ -48,7 +50,7 @@ contract DealNFT is ERC721, Ownable, IDealNFT {
         closingTimestamp = closingTimestamp_;
 
         registry = IERC6551Registry(registry_);
-        implementation = AccountV3Escrow(implementation_);
+        implementation = AccountV3TBD(implementation_);
 
         emit Deal(sponsorAddress, escrowToken_, closingTimestamp);
     }
@@ -59,50 +61,52 @@ contract DealNFT is ERC721, Ownable, IDealNFT {
         
         bytes32 salt = bytes32(abi.encode(0));
         address payable walletAddress = payable(registry.createAccount(address(implementation), salt, block.chainid, address(this), newTokenId));
-        AccountV3Escrow newAccount = AccountV3Escrow(walletAddress);
-        if (newAccount.owner() != msg.sender) revert OwnerMismatch();
+        AccountV3TBD newAccount = AccountV3TBD(walletAddress);
+        require(newAccount.owner() == msg.sender, "owner mismatch");
         newAccount.approve();
 
         escrowToken.safeTransferFrom(msg.sender, walletAddress, amount);
 
-        amountOf[newTokenId] = amount;
-        totalDeposited += amount;
+        stakedAmount[newTokenId] = amount;
+        totalStaked += amount;
 
         emit Stake(msg.sender, walletAddress, newTokenId, amount);
     }
 
-    function unstake(uint256 tokenId, uint256 amount) external {
+    function unstake(uint256 tokenId) external {
         address nftOwner = ownerOf(tokenId);
-        require(msg.sender == nftOwner, "Not NFT owner");
-        require(!isClosingWeek(), "Cannot withdraw during closing week");
+        require(msg.sender == nftOwner, "not the nft owner");
+        require(!_isClosingWeek(), "cannot withdraw during closing week");
 
-        uint256 balance = amountOf[tokenId];
-        amountOf[tokenId] = balance > amount ? balance - amount : 0;
-        totalDeposited -= (balance - amountOf[tokenId]);
+        totalStaked -= stakedAmount[tokenId];
+        stakedAmount[tokenId] = 0;
 
         address tokenBoundAccount = getTokenBoundAccount(tokenId);
-        escrowToken.safeTransferFrom(tokenBoundAccount, nftOwner, amount);
+        uint256 balance = escrowToken.balanceOf(tokenBoundAccount);
+        escrowToken.safeTransferFrom(tokenBoundAccount, nftOwner, balance);
 
-        emit Unstake(tokenBoundAccount, nftOwner, tokenId, amount);
+        emit Unstake(tokenBoundAccount, nftOwner, tokenId, balance);
     }
 
-    function close(uint256[] memory tokenIds) external {
-        require(msg.sender == sponsorAddress, "Invalid sponsor");
-        require(isClosingWeek(), "Not in closing week");
+    function claimNext() external {
+        require(msg.sender == sponsorAddress, "not the sponsor");
+        require(_isClosingWeek(), "not in closing week");
+        require(claimTokenId < _tokenId, "token id out of bounds");
 
-        for(uint256 i = 0; i < tokenIds.length; i++) {
-            uint256 tokenId = tokenIds[i];
-            uint256 amount = amountOf[tokenId];
-            amountOf[tokenId] = 0;
-            totalDeposited -= amount;
-            escrowToken.safeTransferFrom(getTokenBoundAccount(tokenId), sponsorAddress, amount);
-            // TODO: hook transfers rewards to TBA
+        _claimNext();
+    }
 
-            emit Close(sponsorAddress, tokenId, amount);
+    function claim() external {
+        require(msg.sender == sponsorAddress, "not the sponsor");
+        require(_isClosingWeek(), "not in closing week");
+        require(claimTokenId < _tokenId, "token id out of bounds");
+
+        while(claimTokenId < _tokenId) {
+            _claimNext();
         }
     }
 
-    function nextId() external view returns (uint256) {
+    function nextId() public view returns (uint256) {
         return _tokenId;
     }
 
@@ -118,8 +122,27 @@ contract DealNFT is ERC721, Ownable, IDealNFT {
         return registry.account(address(implementation), bytes32(abi.encode(0)), block.chainid, address(this), tokenId);
     }
 
-    function isClosingWeek() public view returns (bool) {
+    function allowToken(address to) external view returns (bool) {
+        return to != address(escrowToken);
+    }
+
+    function _isClosingWeek() private view returns (bool) {
         return closingTimestamp < block.timestamp && block.timestamp < (closingTimestamp + 1 weeks);
     }
 
+    function _claimNext() private {
+        uint256 tokenId = claimTokenId++;
+        uint256 amount = stakedAmount[tokenId];
+
+        if(amount > 0) {
+            // TODO: implement a total maximum deal amount. Take funds up to that number and then stop.
+            // There will be a last stake with less claimed amount than the staked amount. All the stakes after that will unused - not sent to sponsor.
+            escrowToken.safeTransferFrom(getTokenBoundAccount(tokenId), sponsorAddress, amount);
+            claimedAmount[tokenId] = amount;
+            totalClaimed += amount;
+            // TODO: hook transfers rewards to TBA
+        }
+
+        emit Claim(sponsorAddress, tokenId, amount);
+    }
 }

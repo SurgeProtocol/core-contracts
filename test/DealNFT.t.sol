@@ -3,7 +3,7 @@ pragma solidity 0.8.25;
 
 import {Test, console} from "forge-std/Test.sol";
 import {DealNFT} from "../src/DealNFT.sol";
-import {AccountV3Escrow} from "../src/AccountV3Escrow.sol";
+import {AccountV3TBD} from "../src/AccountV3TBD.sol";
 
 import "multicall-authenticated/Multicall3.sol";
 import "erc6551/ERC6551Registry.sol";
@@ -18,7 +18,7 @@ contract DealTest is Test {
     AccountGuardian public guardian;
     
     DealNFT public deal;
-    AccountV3Escrow public implementation;
+    AccountV3TBD public implementation;
     IERC20 public escrowToken;
 
     uint256 tokenId = 0;
@@ -35,7 +35,7 @@ contract DealTest is Test {
         forwarder = new Multicall3();
         guardian = new AccountGuardian(address(this));
 
-        implementation = new AccountV3Escrow(
+        implementation = new AccountV3TBD(
             address(1), address(forwarder), address(registry), address(guardian)
         );
 
@@ -56,15 +56,15 @@ contract DealTest is Test {
         assertEq(deal.tokenURI(0), "https://test.com");
         assertEq(address(deal.escrowToken()), address(escrowToken));
         assertEq(deal.closingTimestamp(), block.timestamp + 2 days);
-        assertEq(address(deal.registry()), address(registry));
-        assertEq(address(deal.implementation()), address(implementation));
+        assertEq(deal.totalStaked(), 0);
+        assertEq(deal.totalClaimed(), 0);
     }
 
     function test_Stake() public {
         stake();
 
-        assertEq(deal.amountOf(tokenId), amount);
-        assertEq(deal.totalDeposited(), amount);
+        assertEq(deal.stakedAmount(tokenId), amount);
+        assertEq(deal.totalStaked(), amount);
         assertEq(escrowToken.balanceOf(deal.getTokenBoundAccount(tokenId)), amount);
         assertEq(escrowToken.balanceOf(staker), 0);
         assertEq(deal.ownerOf(tokenId), staker);
@@ -74,27 +74,26 @@ contract DealTest is Test {
         stake();
 
         vm.prank(staker);
-        deal.unstake(tokenId, amount);        
+        deal.unstake(tokenId);
 
-        assertEq(deal.amountOf(tokenId), 0);
+        assertEq(deal.stakedAmount(tokenId), 0);
         assertEq(escrowToken.balanceOf(staker), amount);
         assertEq(escrowToken.balanceOf(deal.getTokenBoundAccount(tokenId)), 0);
-        assertEq(deal.totalDeposited(), 0);
+        assertEq(deal.totalStaked(), 0);
     }
 
-    function test_Close() public {
+    function test_Claim() public {
         stake();
         skip(3 days);
 
-        uint256[] memory tokenIds = new uint256[](1);
-        tokenIds[0] = tokenId;    
         vm.prank(sponsor);
-        deal.close(tokenIds);
+        deal.claim();
 
-        assertEq(deal.amountOf(tokenId), 0);
+        assertEq(deal.stakedAmount(tokenId), amount);
         assertEq(escrowToken.balanceOf(sponsor), amount);
         assertEq(escrowToken.balanceOf(deal.getTokenBoundAccount(tokenId)), 0);
-        assertEq(deal.totalDeposited(), 0);
+        assertEq(deal.totalStaked(), amount);
+        assertEq(deal.totalClaimed(), amount);
     }
 
     function stake() internal {
