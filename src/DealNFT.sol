@@ -122,6 +122,10 @@ contract DealNFT is ERC721, Ownable, IDealNFT {
         return registry.account(address(implementation), bytes32(abi.encode(0)), block.chainid, address(this), tokenId);
     }
 
+    function allowToken(address to) external view returns (bool) {
+        return to != address(escrowToken);
+    }
+
     function _isClosingWeek() private view returns (bool) {
         return closingTimestamp < block.timestamp && block.timestamp < (closingTimestamp + 1 weeks);
     }

@@ -24,8 +24,7 @@ contract AccountV3TBD is AccountV3 {
 
     function _beforeExecute(address to, uint256 value, bytes memory data, uint8 operation) internal override {
         (, address tokenContract, ) = token();
-        IERC20 escrowToken = IDealNFT(tokenContract).escrowToken();
-        require(to != address(escrowToken), "Cannot use the escrow token");
+        require(IDealNFT(tokenContract).allowToken(to), "Cannot use the escrow token");
         super._beforeExecute(to, value, data, operation);
     }
 }
