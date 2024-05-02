@@ -40,22 +40,37 @@ contract DealTest is Test {
         );
 
         deal = new DealNFT(
-            "https://test.com",
-            address(escrowToken),
-            block.timestamp + 2 days,
             address(registry),
             payable(address(implementation)),
-            sponsor
+            sponsor,
+            "https://test.com/hello.png",
+            "https://test.com",
+            "https://x.com/@example",
+            address(escrowToken)
         );
+
+        vm.prank(sponsor);
+        deal.configure("lorem ipsum", block.timestamp + 2 weeks, true, 0, 1000);
 
         escrowToken.transfer(address(staker), amount);
     }
 
     function test_Config() public view {
-        assertEq(deal.sponsorAddress(), sponsor);
-        assertEq(deal.tokenURI(0), "https://test.com");
+        // constructor params
+        assertEq(deal.sponsor(), sponsor);
+        assertEq(deal.tokenURI(0), "https://test.com/hello.png");
+        assertEq(deal.web(), "https://test.com");
+        assertEq(deal.twitter(), "https://x.com/@example");
         assertEq(address(deal.escrowToken()), address(escrowToken));
-        assertEq(deal.closingTimestamp(), block.timestamp + 2 days);
+
+        // configuration params
+        assertEq(deal.description(), "lorem ipsum");
+        assertEq(deal.closingDate(), block.timestamp + 2 weeks);
+        assertEq(deal.transferrable(), true);
+        assertEq(deal.dealMinimum(), 0);
+        assertEq(deal.dealMaximum(), 1000);
+
+        // defaults
         assertEq(deal.totalStaked(), 0);
         assertEq(deal.totalClaimed(), 0);
     }
@@ -84,7 +99,7 @@ contract DealTest is Test {
 
     function test_Claim() public {
         stake();
-        skip(3 days);
+        skip(15 days);
 
         vm.prank(sponsor);
         deal.claim();
