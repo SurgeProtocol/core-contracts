@@ -20,6 +20,7 @@ contract DealTest is Test {
     DealNFT public deal;
     AccountV3TBD public implementation;
     IERC20 public escrowToken;
+    IERC20 public notEscrowToken;
 
     uint256 tokenId = 0;
     uint256 amount = 10;
@@ -31,6 +32,7 @@ contract DealTest is Test {
         sponsor = vm.addr(2);
         
         escrowToken = new ERC20PresetFixedSupply("escrow", "escrow", 100, address(this));
+        notEscrowToken = new ERC20PresetFixedSupply("not escrow", "not escrow", 100, address(this));
         registry = new ERC6551Registry();
         forwarder = new Multicall3();
         guardian = new AccountGuardian(address(this));
@@ -49,9 +51,10 @@ contract DealTest is Test {
             address(escrowToken)
         );
 
+        assertEq(uint256(deal.state()), 0); // Configuring
         vm.prank(sponsor);
         deal.configure("lorem ipsum", block.timestamp + 2 weeks, true, 0, 1000);
-
+        assertEq(uint256(deal.state()), 1); // Active
         escrowToken.transfer(address(staker), amount);
     }
 
@@ -71,8 +74,11 @@ contract DealTest is Test {
         assertEq(deal.dealMaximum(), 1000);
 
         // defaults
+        assertEq(deal.nextId(), 0);
         assertEq(deal.totalStaked(), 0);
         assertEq(deal.totalClaimed(), 0);
+        assertEq(deal.allowToken(address(escrowToken)), false);
+        assertEq(deal.allowToken(address(notEscrowToken)), true);
     }
 
     function test_Stake() public {
@@ -99,7 +105,10 @@ contract DealTest is Test {
 
     function test_Claim() public {
         stake();
+        assertEq(uint256(deal.state()), 1); // Active
+
         skip(15 days);
+        assertEq(uint256(deal.state()), 2); // Closing
 
         vm.prank(sponsor);
         deal.claim();
@@ -111,11 +120,26 @@ contract DealTest is Test {
         assertEq(deal.totalClaimed(), amount);
     }
 
+    function test_TransferOtherTokens() public {
+        stake();
+        address tba = deal.getTokenBoundAccount(tokenId);
+        notEscrowToken.transfer(address(tba), amount);
+        assertEq(notEscrowToken.balanceOf(tba), amount);
+        assertEq(notEscrowToken.balanceOf(sponsor), 0);
+
+        AccountV3TBD account = AccountV3TBD(payable(tba));
+        bytes memory erc20TransferCall =
+            abi.encodeWithSignature("transfer(address,uint256)", sponsor, amount);
+        vm.prank(staker);
+        account.execute(payable(address(notEscrowToken)), 0, erc20TransferCall, 0);
+        assertEq(notEscrowToken.balanceOf(tba), 0);
+        assertEq(notEscrowToken.balanceOf(sponsor), amount);
+    }
+
     function stake() internal {
         vm.startPrank(staker);
         escrowToken.approve(address(deal), amount);
         deal.stake(amount);
         vm.stopPrank();
     }
-
 }
