@@ -163,19 +163,17 @@ contract DealNFT is ERC721, Ownable, IDealNFT {
         uint256 tokenId = _claimId++;
         uint256 amount = stakedAmount[tokenId];
 
-        if(amount > 0) {
-            if(totalClaimed + amount > dealMaximum){
-                amount = dealMaximum - totalClaimed;
-            }
+        if(totalClaimed + amount > dealMaximum){
+            amount = dealMaximum - totalClaimed;
+        }
 
+        if(amount > 0) {        
             escrowToken.safeTransferFrom(getTokenBoundAccount(tokenId), sponsor, amount);
             claimedAmount[tokenId] = amount;
             totalClaimed += amount;
-
             // TODO: hook transfers rewards to TBA
+            emit Claim(sponsor, tokenId, amount);
         }
-
-        emit Claim(sponsor, tokenId, amount);
     }
 
     function state() public view returns (State) {
