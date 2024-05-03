@@ -18,5 +18,6 @@ $ forge test
 ### Deploy
 
 ```shell
-$ forge script script/DealNFT.s.sol:DealScript --rpc-url <rpc_url> --private-key <private_key>
+$ forge script script/DeployAccountV3TBD.s.sol:AccountV3TBDScript --rpc-url <rpc_url> --private-key <private_key>
+$ forge script script/DeployDealNFT.s.sol:DealScript --rpc-url <rpc_url> --private-key <private_key>
 ```
