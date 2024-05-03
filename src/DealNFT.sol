@@ -31,6 +31,7 @@ contract DealNFT is ERC721, Ownable, IDealNFT {
     // Hook hook; to store deal rules
     // whitelist or credentials for contributors;
     // vesting schedules for stakers on the reward tokens;
+    // functionality for many escrow tokens
 
     address public sponsor;
     string public nftURI;
