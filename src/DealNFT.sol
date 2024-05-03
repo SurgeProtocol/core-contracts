@@ -27,7 +27,6 @@ contract DealNFT is ERC721, Ownable, IDealNFT {
     AccountV3TBD private implementation;
 
     uint256 public constant closingPeriod = 1 weeks;
-    uint256 public constant closingDelay = 1 weeks;
 
     // Hook hook; to store deal rules
     // whitelist or credentials for contributors;
@@ -37,8 +36,8 @@ contract DealNFT is ERC721, Ownable, IDealNFT {
     string public nftURI;
     string public web;
     string public twitter;
-    // IERC20[] public tokens;
     IERC20 public escrowToken;
+    uint256 public closingDelay;
 
     string public description;
     uint256 public closingDate;
@@ -58,7 +57,8 @@ contract DealNFT is ERC721, Ownable, IDealNFT {
         string memory nftURI_,
         string memory web_,
         string memory twitter_,
-        address escrowToken_
+        address escrowToken_,
+        uint256 closingDelay_
     ) ERC721("SurgeDeal", "SRG") {
         registry = IERC6551Registry(registry_);
         implementation = AccountV3TBD(implementation_);
@@ -68,6 +68,7 @@ contract DealNFT is ERC721, Ownable, IDealNFT {
         web = web_;
         twitter = twitter_;
         escrowToken = IERC20(escrowToken_);
+        closingDelay = closingDelay_;
 
         closingDate = type(uint256).max;
 

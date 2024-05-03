@@ -48,7 +48,8 @@ contract DealTest is Test {
             "https://test.com/hello.png",
             "https://test.com",
             "https://x.com/@example",
-            address(escrowToken)
+            address(escrowToken),
+            1 weeks
         );
 
         assertEq(uint256(deal.state()), 0); // Configuring
