@@ -2,7 +2,7 @@
 
 **Staking pools that allow you to buy deals before they have terms**
 
-**TBD: Token Bound Deposits, a variant of Token Bound Accounts that accepts escrow deposits and allows you to buy deals that do not have final terms**
+**TBD: Token Bound Deposits, a variant of Token Bound Accounts that accepts escrow deposits and applies rules to destribute a selected token**
 
 ## Documentation
 
