@@ -2,13 +2,15 @@
 
 **Staking pools that allow you to buy deals before they have terms**
 
-**TBD: Token Bound Deposits, a variant of Token Bound Accounts that accepts escrow deposits and applies rules to destribute a selected token**
+Surge "Deals" are a type of NFT that implements a variation of [Token Bound Accounts](https://tokenbound.org/) or TBAs. We call this variation TBD, or "Token Bound Deposits".
+A TBD accepts stakes (escrow deposits) of a specific type of token. Then, it applies rules to control unstaking (by the contributor) or claiming (by the deal sponsor).
 
 ## Documentation
 
 https://not.created.yet/
 
 ## Usage
+The Sponsor constructs a Deal, with an NFT and terms for stakers. The deal becomes active for staking, reaches a close, and might be claimed.
 
 ### Test
 
