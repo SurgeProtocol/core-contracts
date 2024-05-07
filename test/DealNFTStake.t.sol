@@ -65,7 +65,8 @@ contract DealNFTStake is Test {
 
     function test_Stake() public {
         vm.prank(sponsor);
-        deal.configure("lorem ipsum", block.timestamp + 2 weeks, true, 0, 1000);
+        deal.configure("lorem ipsum", block.timestamp + 2 weeks, 0, 1000);
+        _approvals();
 
         _stake(staker1);
         tokenId = 0;
@@ -99,7 +100,7 @@ contract DealNFTStake is Test {
 
     function testFail_StakeAfterActive() public {
         vm.prank(sponsor);
-        deal.configure("lorem ipsum", block.timestamp + 8 days, true, 0, 1000);
+        deal.configure("lorem ipsum", block.timestamp + 8 days, 0, 1000);
         skip(10 days);
         _stake(staker1);
     }
@@ -110,5 +111,12 @@ contract DealNFTStake is Test {
         escrowToken.approve(address(deal), amount);
         deal.stake(amount);
         vm.stopPrank();
+    }
+
+    function _approvals() internal {
+        vm.prank(sponsor);
+        deal.approveStaker(staker1, amount);
+        vm.prank(sponsor);
+        deal.approveStaker(staker2, amount);
     }
 }

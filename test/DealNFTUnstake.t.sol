@@ -59,6 +59,9 @@ contract DealNFTUnstake is Test {
             address(escrowToken),
             1 weeks
         );
+
+        _approvals();
+
         escrowToken.transfer(address(staker1), amount);
         escrowToken.transfer(address(staker2), amount);
     }
@@ -133,7 +136,7 @@ contract DealNFTUnstake is Test {
     // ***** Internals *****
     function _configure() internal {
         vm.prank(sponsor);
-        deal.configure("lorem ipsum", block.timestamp + 2 weeks, true, 0, 1000);
+        deal.configure("lorem ipsum", block.timestamp + 2 weeks, 0, 1000);
     }
 
     function _stake(address user) internal {
@@ -141,5 +144,12 @@ contract DealNFTUnstake is Test {
         escrowToken.approve(address(deal), amount);
         deal.stake(amount);
         vm.stopPrank();
+    }
+
+    function _approvals() internal {
+        vm.prank(sponsor);
+        deal.approveStaker(staker1, amount);
+        vm.prank(sponsor);
+        deal.approveStaker(staker2, amount);
     }
 }

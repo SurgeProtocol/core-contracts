@@ -54,7 +54,10 @@ contract DealTest is Test {
 
         assertEq(uint256(deal.state()), 0); // Configuring
         vm.prank(sponsor);
-        deal.configure("lorem ipsum", block.timestamp + 2 weeks, true, 0, 1000);
+        deal.configure("lorem ipsum", block.timestamp + 2 weeks, 0, 1000);
+        vm.prank(sponsor);
+        deal.approveStaker(staker, amount);
+
         assertEq(uint256(deal.state()), 1); // Active
         escrowToken.transfer(address(staker), amount);
     }
@@ -69,8 +72,8 @@ contract DealTest is Test {
 
         // configuration params
         assertEq(deal.description(), "lorem ipsum");
-        assertEq(deal.closingDate(), block.timestamp + 2 weeks);
-        assertEq(deal.transferrable(), true);
+        assertEq(deal.closingTime(), block.timestamp + 2 weeks);
+        assertEq(deal.transferrable(), false);
         assertEq(deal.dealMinimum(), 0);
         assertEq(deal.dealMaximum(), 1000);
 

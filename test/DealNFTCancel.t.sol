@@ -59,7 +59,10 @@ contract DealNFTCancel is Test {
         );
 
         vm.prank(sponsor);
-        deal.configure("lorem ipsum", block.timestamp + 2 weeks, true, 0, 1000);
+        deal.configure("lorem ipsum", block.timestamp + 2 weeks, 0, 1000);
+        vm.prank(sponsor);
+        deal.approveStaker(staker, amount);
+
         escrowToken.transfer(address(staker), amount);
     }
 

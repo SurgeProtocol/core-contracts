@@ -57,6 +57,10 @@ contract DealNFTConfigure is Test {
             address(escrowToken),
             1 weeks
         );
+
+        vm.prank(sponsor);
+        deal.approveStaker(staker, amount);
+
         escrowToken.transfer(address(staker), amount);
     }
 
@@ -65,21 +69,21 @@ contract DealNFTConfigure is Test {
         assertEq(_state, 0); // Configuring
 
         vm.prank(sponsor);
-        deal.configure("lorem ipsum", block.timestamp + 2 weeks, true, 0, 1000);
+        deal.configure("lorem ipsum", block.timestamp + 2 weeks, 0, 1000);
 
         _state = uint256(deal.state());
         assertEq(_state, 1); // Active
     }
 
-    function testFail_ConfigureWithClosingDateZero() public {
+    function testFail_ConfigureWithClosingTimeZero() public {
         vm.prank(sponsor);
-        deal.configure("lorem ipsum", 0, true, 0, 1000);
+        deal.configure("lorem ipsum", 0, 0, 1000);
     }
 
-    function testFail_ConfigureWithClosingDateMinimum() public {
+    function testFail_ConfigureWithClosingTimeMinimum() public {
         vm.prank(sponsor);
-        uint256 closingDate = (block.timestamp + 1 weeks);
-        deal.configure("lorem ipsum", closingDate, true, 0, 1000);
+        uint256 closingTime = (block.timestamp + 1 weeks);
+        deal.configure("lorem ipsum", closingTime, 0, 1000);
     }
 
     function testFail_ConfigureWithWrongRange() public {
@@ -87,7 +91,6 @@ contract DealNFTConfigure is Test {
         deal.configure(
             "lorem ipsum",
             block.timestamp + 2 weeks,
-            true,
             1000,
             1000
         );
@@ -95,7 +98,7 @@ contract DealNFTConfigure is Test {
 
     function testFail_ConfigureWithWrongSender() public {
         vm.prank(staker);
-        deal.configure("lorem ipsum", block.timestamp + 2 weeks, true, 0, 1000);
+        deal.configure("lorem ipsum", block.timestamp + 2 weeks, 0, 1000);
     }
 
     function testFail_ConfigureWhenClosed() public {
@@ -103,12 +106,11 @@ contract DealNFTConfigure is Test {
         deal.configure(
             "lorem ipsum",
             block.timestamp + 1 weeks + 1,
-            true,
             0,
             1000
         );
         skip(15 days);
-        deal.configure("lorem ipsum", block.timestamp + 2 weeks, true, 0, 1000);
+        deal.configure("lorem ipsum", block.timestamp + 2 weeks, 0, 1000);
         vm.stopPrank();
     }
 
@@ -117,7 +119,6 @@ contract DealNFTConfigure is Test {
         deal.configure(
             "lorem ipsum",
             block.timestamp + 1 weeks + 1,
-            true,
             1,
             1000
         );
@@ -130,7 +131,7 @@ contract DealNFTConfigure is Test {
         skip(10 days);
         uint256 _state = uint256(deal.state());
         assertEq(_state, 2); // Closing
-        deal.configure("lorem ipsum", block.timestamp + 2 weeks, true, 0, 1000);
+        deal.configure("lorem ipsum", block.timestamp + 2 weeks, 0, 1000);
         vm.stopPrank();
     }
 }

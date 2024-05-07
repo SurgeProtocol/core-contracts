@@ -3,19 +3,22 @@ pragma solidity 0.8.25;
 
 import {ERC721} from "openzeppelin/token/ERC721/ERC721.sol";
 import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
-import {Ownable} from "openzeppelin/access/Ownable.sol";
 import {SafeERC20} from "openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import {IERC6551Registry} from "erc6551/interfaces/IERC6551Registry.sol";
 import {AccountV3TBD} from "./AccountV3TBD.sol";
 import {IDealNFT} from "./interfaces/IDealNFT.sol";
 
-contract DealNFT is ERC721, Ownable, IDealNFT {
+contract DealNFT is ERC721, IDealNFT {
     using SafeERC20 for IERC20;
     
     event Deal(address indexed sponsor, address escrowToken);
+    event Configure(string description, uint256 closingTime, uint256 dealMinimum, uint256 dealMaximum);
     event Stake(address indexed staker, address indexed walletAddress, uint256 tokenId, uint256 amount);
     event Unstake(address indexed tokenBoundAccount, address indexed nftOwner, uint256 tokenId, uint256 amount);
     event Claim(address indexed sponsor, uint256 tokenId, uint256 amount);
+    event Approval(address indexed staker, uint256 amount);
+    event Cancel();
+    event Transferrable(bool transferrable);
 
     enum State { Configuration, Active, Closing, Closed, Canceled }
 
@@ -26,22 +29,16 @@ contract DealNFT is ERC721, Ownable, IDealNFT {
     IERC6551Registry private registry;
     AccountV3TBD private implementation;
 
-    uint256 public constant closingPeriod = 1 weeks;
-
-    // Hook hook; to store deal rules
-    // whitelist or credentials for contributors;
-    // vesting schedules for stakers on the reward tokens;
-    // functionality for many escrow tokens
-
     address public sponsor;
     string public nftURI;
     string public web;
     string public twitter;
     IERC20 public escrowToken;
     uint256 public closingDelay;
+    uint256 public constant closingPeriod = 1 weeks;
 
     string public description;
-    uint256 public closingDate;
+    uint256 public closingTime;
     bool public transferrable;
     uint256 public dealMinimum;
     uint256 public dealMaximum;
@@ -50,6 +47,9 @@ contract DealNFT is ERC721, Ownable, IDealNFT {
     uint256 public totalClaimed;
     mapping(uint256 tokenId => uint256) public stakedAmount;
     mapping(uint256 tokenId => uint256) public claimedAmount;
+
+    mapping(address staker => uint256) public approvalOf;
+    mapping(address staker => uint256) public stakeOf;
 
     constructor(
         address registry_,
@@ -60,7 +60,7 @@ contract DealNFT is ERC721, Ownable, IDealNFT {
         string memory twitter_,
         address escrowToken_,
         uint256 closingDelay_
-    ) ERC721("SurgeDeal", "SRG") {
+    ) ERC721("SurgeDealTEST", "SRGTEST") {
         registry = IERC6551Registry(registry_);
         implementation = AccountV3TBD(implementation_);
 
@@ -71,21 +71,20 @@ contract DealNFT is ERC721, Ownable, IDealNFT {
         escrowToken = IERC20(escrowToken_);
         closingDelay = closingDelay_;
 
-        closingDate = type(uint256).max;
+        closingTime = type(uint256).max;
 
         emit Deal(sponsor, escrowToken_);
     }
 
     function configure(
         string memory description_,
-        uint256 closingDate_,
-        bool transferrable_,
+        uint256 closingTime_,
         uint256 dealMinimum_,
         uint256 dealMaximum_
     ) external {
         require(msg.sender == sponsor, "not the sponsor");
-        require(closingDate_ > block.timestamp + closingDelay, "invalid closing date");
-        require(dealMinimum_ < dealMaximum_, "wrong stakes range");
+        require(closingTime_ > block.timestamp + closingDelay, "invalid closing date");
+        require(dealMinimum_ < dealMaximum_, "wrong deal range");
         require(state() < State.Closed, "cannot configure anymore");
 
         if(state() == State.Closing) {
@@ -93,22 +92,42 @@ contract DealNFT is ERC721, Ownable, IDealNFT {
         }
 
         description = description_;
-        closingDate = closingDate_;
-        transferrable = transferrable_;
+        closingTime = closingTime_;
         dealMinimum = dealMinimum_;
         dealMaximum = dealMaximum_;
 
         _state = State.Active;
+
+        emit Configure(description_, closingTime_, dealMinimum_, dealMaximum_);
+    }
+
+    function setTransferrable(bool transferrable_) external {
+        require(msg.sender == sponsor, "not the sponsor");
+        require(!_afterClosed(), "cannot be changed anymore");
+
+        transferrable = transferrable_;
+        emit Transferrable(transferrable_);
+    }
+
+    function approveStaker(address staker_, uint256 amount_) external {
+        require(msg.sender == sponsor, "not the sponsor");
+
+        approvalOf[staker_] = amount_;
+        emit Approval(staker_, amount_);
     }
 
     function cancel() external {
         require(msg.sender == sponsor, "not the sponsor");
         require(state() <= State.Active, "cannot be canceled");
+
         _state = State.Canceled;
+        emit Cancel();
     }
 
     function stake(uint256 amount) external {
         require(state() == State.Active, "not an active deal");
+        require(amount > 0, "invalid amount");
+        require(approvalOf[msg.sender] >= stakeOf[msg.sender] + amount, "insuficient approval");
 
         uint256 newTokenId = _tokenId++;
         _safeMint(msg.sender, newTokenId);
@@ -118,6 +137,7 @@ contract DealNFT is ERC721, Ownable, IDealNFT {
 
         stakedAmount[newTokenId] = amount;
         totalStaked += amount;
+        stakeOf[msg.sender] += amount;
 
         emit Stake(msg.sender, newAccount, newTokenId, amount);
     }
@@ -128,6 +148,7 @@ contract DealNFT is ERC721, Ownable, IDealNFT {
         require(state() != State.Closing, "cannot withdraw during closing week");
 
         if(state() <= State.Active){
+            stakeOf[msg.sender] -= stakedAmount[tokenId];
             totalStaked -= stakedAmount[tokenId];
             stakedAmount[tokenId] = 0;
         }
@@ -179,8 +200,8 @@ contract DealNFT is ERC721, Ownable, IDealNFT {
     function state() public view returns (State) {
         if(_state == State.Canceled) return State.Canceled;
         if(_beforeClose()) return _state;
+        if(_isClaimed() || _afterClosed()) return State.Closed;
         if(_isClosing()) return State.Closing;
-        if(_afterClosed()) return State.Closed;
 
         revert("invalid state");
     }
@@ -219,16 +240,29 @@ contract DealNFT is ERC721, Ownable, IDealNFT {
         return !_beforeClose() && !_afterClosed();
     }
 
+    function _isClaimed() private view returns (bool) {
+        return totalClaimed >= dealMaximum || totalClaimed >= totalStaked;
+    }
+
     function _beforeClose() private view returns (bool) {
-        return block.timestamp < closingDate;
+        return block.timestamp < closingTime;
     }
 
     function _afterClosed() private view returns (bool) {
-        return block.timestamp > (closingDate + closingPeriod);
+        return block.timestamp > (closingTime + closingPeriod);
     }
 
     function _transfer(address from, address to, uint256 tokenId) internal override {
         require(transferrable, "not transferrable");
+
+        uint256 amount = stakedAmount[tokenId];
+
+        approvalOf[from] -= amount;
+        approvalOf[to] += amount;
+
+        stakeOf[from] -= amount;
+        stakeOf[to] += amount;
+
         super._transfer(from, to, tokenId);
     }
 }

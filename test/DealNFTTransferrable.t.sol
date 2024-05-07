@@ -59,11 +59,18 @@ contract DealNFTTransferrable is Test {
             address(escrowToken),
             1 weeks
         );
+
+        _approvals();
+
         escrowToken.transfer(address(staker1), amount);
     }
 
     function test_TransferNFT() public {
-        _configure(true);
+        _configure();
+
+        vm.prank(sponsor);
+        deal.setTransferrable(true);
+
         _stake(staker1);
         assertEq(deal.ownerOf(tokenId), staker1);
 
@@ -77,7 +84,9 @@ contract DealNFTTransferrable is Test {
     }
 
     function testFail_TransferNFT() public {
-        _configure(false);
+        _configure();
+        vm.prank(sponsor);
+        deal.setTransferrable(false);
         _stake(staker1);
         assertEq(deal.ownerOf(tokenId), staker1);
 
@@ -86,12 +95,11 @@ contract DealNFTTransferrable is Test {
     }
 
     // ***** Internals *****
-    function _configure(bool tranferrable) internal {
+    function _configure() internal {
         vm.prank(sponsor);
         deal.configure(
             "lorem ipsum",
             block.timestamp + 2 weeks,
-            tranferrable,
             0,
             1000
         );
@@ -102,5 +110,12 @@ contract DealNFTTransferrable is Test {
         escrowToken.approve(address(deal), amount);
         deal.stake(amount);
         vm.stopPrank();
+    }
+
+    function _approvals() internal {
+        vm.prank(sponsor);
+        deal.approveStaker(staker1, amount);
+        vm.prank(sponsor);
+        deal.approveStaker(staker2, amount);
     }
 }
