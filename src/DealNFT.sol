@@ -39,7 +39,7 @@ contract DealNFT is ERC721, IDealNFT {
 
     // Deal parameters
     address public sponsor;
-    string public nftURI;
+    string public baseURI;
     string public web;
     string public twitter;
     IERC20 public escrowToken;
@@ -67,7 +67,7 @@ contract DealNFT is ERC721, IDealNFT {
      * @param registry_ The address of the ERC6551 registry
      * @param implementation_ The address of the AccountV3TBD implementation
      * @param sponsor_ The address of the sponsor of the deal
-     * @param nftURI_ The URI for the NFTs
+     * @param baseURI_ The base URI for the NFTs
      * @param web_ The website associated with the deal
      * @param twitter_ The Twitter account associated with the deal
      * @param escrowToken_ The address of the escrow token
@@ -77,7 +77,7 @@ contract DealNFT is ERC721, IDealNFT {
         address registry_,
         address payable implementation_,
         address sponsor_,
-        string memory nftURI_,
+        string memory baseURI_,
         string memory web_,
         string memory twitter_,
         address escrowToken_,
@@ -87,7 +87,7 @@ contract DealNFT is ERC721, IDealNFT {
         _implementation = AccountV3TBD(implementation_);
 
         sponsor = sponsor_;
-        nftURI = nftURI_;
+        baseURI = string(abi.encodePacked(baseURI_, "/deal/", address(this), "/token/"));
         web = web_;
         twitter = twitter_;
         escrowToken = IERC20(escrowToken_);
@@ -280,13 +280,6 @@ contract DealNFT is ERC721, IDealNFT {
     }
 
     /**
-     * @notice Get token URI
-     */
-    function tokenURI(uint256) public view override returns (string memory) {
-        return nftURI;
-    }
-
-    /**
      * @notice Get the TBA of a particular NFT
      */
     function getTokenBoundAccount(uint256 tokenId) public view returns(address) {
@@ -357,5 +350,9 @@ contract DealNFT is ERC721, IDealNFT {
         stakeOf[to] += amount;
 
         super._transfer(from, to, tokenId);
+    }
+
+    function _baseURI() internal view override returns (string memory) {
+        return baseURI;
     }
 }

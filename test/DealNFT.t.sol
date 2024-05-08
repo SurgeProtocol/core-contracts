@@ -50,7 +50,7 @@ contract DealTest is Test {
             address(registry),
             payable(address(implementation)),
             sponsor,
-            "https://test.com/hello.png",
+            "https://test.com",
             "https://test.com",
             "https://x.com/@example",
             address(escrowToken),
@@ -73,7 +73,7 @@ contract DealTest is Test {
     function test_Config() public view {
         // constructor params
         assertEq(deal.sponsor(), sponsor);
-        assertEq(deal.tokenURI(0), "https://test.com/hello.png");
+        assertEq(deal.baseURI(), string(abi.encodePacked("https://test.com/deal/", address(deal), "/token/")));
         assertEq(deal.web(), "https://test.com");
         assertEq(deal.twitter(), "https://x.com/@example");
         assertEq(address(deal.escrowToken()), address(escrowToken));
@@ -104,6 +104,7 @@ contract DealTest is Test {
         assertEq(escrowToken.balanceOf(deal.getTokenBoundAccount(tokenId)), amount);
         assertEq(escrowToken.balanceOf(staker), 0);
         assertEq(deal.ownerOf(tokenId), staker);
+        assertEq(deal.tokenURI(tokenId), string(abi.encodePacked("https://test.com/deal/", address(deal), "/token/0")));
     }
 
     function test_Unstake() public {
