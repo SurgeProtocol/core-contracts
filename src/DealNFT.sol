@@ -7,8 +7,9 @@ import {SafeERC20} from "openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import {IERC6551Registry} from "erc6551/interfaces/IERC6551Registry.sol";
 import {AccountV3TBD} from "./AccountV3TBD.sol";
 import {IDealNFT} from "./interfaces/IDealNFT.sol";
+import {ReentrancyGuard} from "openzeppelin/security/ReentrancyGuard.sol";
 
-contract DealNFT is ERC721, IDealNFT {
+contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     using SafeERC20 for IERC20;
     
     event Deal(address indexed sponsor, address escrowToken);
@@ -81,7 +82,7 @@ contract DealNFT is ERC721, IDealNFT {
         uint256 closingTime_,
         uint256 dealMinimum_,
         uint256 dealMaximum_    
-    ) external {
+    ) external nonReentrant {
         require(msg.sender == sponsor, "not the sponsor");
         require(closingTime_ > block.timestamp + closingDelay, "invalid closing date");
         require(dealMinimum_ < dealMaximum_, "wrong deal range");
@@ -101,7 +102,7 @@ contract DealNFT is ERC721, IDealNFT {
         emit Configure(sponsor, description_, closingTime_, dealMinimum_, dealMaximum_);
     }
 
-    function setTransferrable(bool transferrable_) external {
+    function setTransferrable(bool transferrable_) external nonReentrant {
         require(msg.sender == sponsor, "not the sponsor");
         require(!_afterClosed(), "cannot be changed anymore");
 
@@ -109,14 +110,14 @@ contract DealNFT is ERC721, IDealNFT {
         emit Transferrable(sponsor, transferrable_);
     }
 
-    function approveStaker(address staker_, uint256 amount_) external {
+    function approveStaker(address staker_, uint256 amount_) external nonReentrant {
         require(msg.sender == sponsor, "not the sponsor");
 
         approvalOf[staker_] = amount_;
         emit StakerApproval(sponsor, staker_, amount_);
     }
 
-    function cancel() external {
+    function cancel() external nonReentrant {
         require(msg.sender == sponsor, "not the sponsor");
         require(state() <= State.Active, "cannot be canceled");
 
@@ -124,7 +125,7 @@ contract DealNFT is ERC721, IDealNFT {
         emit Cancel(sponsor);
     }
 
-    function stake(uint256 amount) external {
+    function stake(uint256 amount) external nonReentrant {
         require(state() == State.Active, "not an active deal");
         require(amount > 0, "invalid amount");
         require(approvalOf[msg.sender] >= stakeOf[msg.sender] + amount, "insuficient approval");
@@ -142,7 +143,7 @@ contract DealNFT is ERC721, IDealNFT {
         emit Stake(msg.sender, newAccount, newTokenId, amount);
     }
 
-    function unstake(uint256 tokenId) external {
+    function unstake(uint256 tokenId) external nonReentrant {
         require(msg.sender == ownerOf(tokenId), "not the nft owner");
         require(state() != State.Closing, "cannot withdraw during closing week");
 
@@ -159,7 +160,7 @@ contract DealNFT is ERC721, IDealNFT {
         emit Unstake(msg.sender, tokenBoundAccount, tokenId, balance);
     }
 
-    function claim() external {
+    function claim() external nonReentrant {
         _checkClaim();
 
         while(_claimId < _tokenId) {
@@ -167,7 +168,7 @@ contract DealNFT is ERC721, IDealNFT {
         }
     }
 
-    function claimNext() external {
+    function claimNext() external nonReentrant {
         _checkClaim();
         _claimNext();
     }
