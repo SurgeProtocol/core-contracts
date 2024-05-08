@@ -26,8 +26,8 @@ contract DealNFT is ERC721, IDealNFT {
     uint256 private _claimId;
     State private _state;
 
-    IERC6551Registry private registry;
-    AccountV3TBD private implementation;
+    IERC6551Registry private _registry;
+    AccountV3TBD private _implementation;
 
     address public sponsor;
     string public nftURI;
@@ -61,8 +61,8 @@ contract DealNFT is ERC721, IDealNFT {
         address escrowToken_,
         uint256 closingDelay_
     ) ERC721("SurgeDealTEST", "SRGTEST") {
-        registry = IERC6551Registry(registry_);
-        implementation = AccountV3TBD(implementation_);
+        _registry = IERC6551Registry(registry_);
+        _implementation = AccountV3TBD(implementation_);
 
         sponsor = sponsor_;
         nftURI = nftURI_;
@@ -80,7 +80,7 @@ contract DealNFT is ERC721, IDealNFT {
         string memory description_,
         uint256 closingTime_,
         uint256 dealMinimum_,
-        uint256 dealMaximum_
+        uint256 dealMaximum_    
     ) external {
         require(msg.sender == sponsor, "not the sponsor");
         require(closingTime_ > block.timestamp + closingDelay, "invalid closing date");
@@ -219,12 +219,12 @@ contract DealNFT is ERC721, IDealNFT {
     }
 
     function getTokenBoundAccount(uint256 tokenId) public view returns(address) {
-        return registry.account(address(implementation), bytes32(abi.encode(0)), block.chainid, address(this), tokenId);
+        return _registry.account(address(_implementation), bytes32(abi.encode(0)), block.chainid, address(this), tokenId);
     }
 
     function _createTokenBoundAccount(uint256 tokenId) private returns(address) {
         bytes32 salt = bytes32(abi.encode(0));
-        address payable walletAddress = payable(registry.createAccount(address(implementation), salt, block.chainid, address(this), tokenId));
+        address payable walletAddress = payable(_registry.createAccount(address(_implementation), salt, block.chainid, address(this), tokenId));
         AccountV3TBD newAccount = AccountV3TBD(walletAddress);
         require(newAccount.owner() == msg.sender, "owner mismatch");
         newAccount.approve();
