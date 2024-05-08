@@ -64,6 +64,11 @@ contract DealNFTUnstake is Test {
 
         escrowToken.transfer(address(staker1), amount);
         escrowToken.transfer(address(staker2), amount);
+
+        vm.prank(staker1);
+        escrowToken.approve(address(deal), amount);
+        vm.prank(staker2);
+        escrowToken.approve(address(deal), amount);
     }
 
     function test_Unstake() public {
@@ -71,7 +76,7 @@ contract DealNFTUnstake is Test {
         _stake(staker1);
         _stake(staker2);
         assertEq(deal.totalStaked(), amount * 2);
-        assertEq(uint256(deal.state()), 1); // Active
+        assertEq(uint256(deal.state()), uint256(DealNFT.State.Active));
 
         vm.prank(staker1);
         deal.unstake(0);
@@ -92,7 +97,7 @@ contract DealNFTUnstake is Test {
 
         skip(22 days);
         assertEq(deal.totalStaked(), amount);
-        assertEq(uint(deal.state()), 3); // Closed
+        assertEq(uint(deal.state()), uint256(DealNFT.State.Closed));
 
         vm.prank(staker2);
         deal.unstake(1);
@@ -107,7 +112,7 @@ contract DealNFTUnstake is Test {
 
         vm.prank(sponsor);
         deal.cancel();
-        assertEq(uint(deal.state()), 4); // Canceled
+        assertEq(uint(deal.state()), uint256(DealNFT.State.Canceled));
 
         vm.prank(staker1);
         deal.unstake(0);
@@ -115,20 +120,22 @@ contract DealNFTUnstake is Test {
         assertEq(deal.stakedAmount(0), amount);
     }
 
-    function testFail_UnstakeWithWrongOwner() public {
+    function test_RevertWhen_UnstakeWithWrongOwner() public {
         _configure();
         _stake(staker1);
 
+        vm.expectRevert("not the nft owner");
         vm.prank(staker2);
         deal.unstake(0);
     }
 
-    function testFail_UnstakeWithClosingState() public {
+    function test_RevertWhen_UnstakeWithClosingState() public {
         _configure();
         _stake(staker1);
         skip(15 days);
-        assertEq(uint256(deal.state()), 2); // Closing
+        assertEq(uint256(deal.state()), uint256(DealNFT.State.Closing));
 
+        vm.expectRevert("cannot withdraw during closing week");
         vm.prank(staker1);
         deal.unstake(0);
     }
@@ -140,10 +147,8 @@ contract DealNFTUnstake is Test {
     }
 
     function _stake(address user) internal {
-        vm.startPrank(user);
-        escrowToken.approve(address(deal), amount);
+        vm.prank(user);
         deal.stake(amount);
-        vm.stopPrank();
     }
 
     function _approvals() internal {

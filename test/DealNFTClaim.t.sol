@@ -73,7 +73,7 @@ contract DealNFTClaim is Test {
         assertEq(deal.totalStaked(), amount * 2);
 
         skip(15 days);
-        assertEq(uint256(deal.state()), 2); // Closing
+        assertEq(uint256(deal.state()), uint256(DealNFT.State.Closing));
 
         vm.prank(sponsor);
         deal.claim();
@@ -87,25 +87,31 @@ contract DealNFTClaim is Test {
         assertEq(deal.totalClaimed(), amount * 2);
     }
 
-    function testFail_ClaimWithWrongSponsor() public {
+    function test_RevertWhen_ClaimWithWrongSponsor() public {
         _setup();
+        
+        vm.expectRevert("not the sponsor");
         vm.prank(staker1);
         deal.claim();
     }
 
-    function testFail_ClaimBeforeClosing() public {
+    function test_RevertWhen_ClaimBeforeClosing() public {
         _configure();
         _stake(staker1);
         _stake(staker2);
+        
+        vm.expectRevert("not in closing week");
         vm.prank(sponsor);
         deal.claim();
     }
 
-    function testFail_ClaimAfterClosing() public {
+    function test_RevertWhen_ClaimAfterClosing() public {
         _configure();
         _stake(staker1);
         _stake(staker2);
         skip(22 days);
+
+        vm.expectRevert("not in closing week");
         vm.prank(sponsor);
         deal.claim();
     }
@@ -116,20 +122,23 @@ contract DealNFTClaim is Test {
         vm.startPrank(sponsor);
         deal.cancel();
 
+        vm.expectRevert("not in closing week");
         deal.claim();
         vm.stopPrank();
     }
 
-    function testFail_ClaimOutOfBounds() public {
+    function test_RevertWhen_ClaimOutOfBounds() public {
         _setup();
 
         vm.startPrank(sponsor);
         deal.claim();
+        
+        vm.expectRevert("token id out of bounds");
         deal.claimNext();
         vm.stopPrank();
     }
 
-    function testFail_ClaimMinimumNotReached() public {
+    function test_RevertWhen_ClaimMinimumNotReached() public {
         vm.prank(sponsor);
         deal.configure(
             "lorem ipsum",
@@ -141,6 +150,7 @@ contract DealNFTClaim is Test {
         _stake(staker2);
         skip(15 days);
 
+        vm.expectRevert("minimum stake not reached");
         vm.prank(sponsor);
         deal.claim();
     }

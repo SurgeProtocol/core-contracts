@@ -71,22 +71,24 @@ contract DealNFTCancel is Test {
 
         vm.prank(sponsor);
         deal.cancel();
-        assertEq(uint256(deal.state()), 4);
+        assertEq(uint256(deal.state()), uint256(DealNFT.State.Canceled));
     }
 
-    function testFail_CancelWrongSponsor() public {
+    function test_RevertWhen_CancelWrongSponsor() public {
         _stake();
 
+        vm.expectRevert("not the sponsor");
         vm.prank(staker);
         deal.cancel();
     }
 
-    function testFail_CancelAfterActivated() public {
+    function test_RevertWhen_CancelAfterActivated() public {
         _stake();
         skip(15 days);
-        assertEq(uint(deal.state()), 2); // Closing
+        assertEq(uint(deal.state()), uint256(DealNFT.State.Closing));
 
-        vm.prank(staker);
+        vm.expectRevert("cannot be canceled");
+        vm.prank(sponsor);
         deal.cancel();
     }
 

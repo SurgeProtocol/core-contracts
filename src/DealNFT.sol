@@ -88,7 +88,7 @@ contract DealNFT is ERC721, IDealNFT {
         require(state() < State.Closed, "cannot configure anymore");
 
         if(state() == State.Closing) {
-            require(totalStaked < dealMinimum, "minimum stake reached, cannot reopen");
+            require(totalStaked < dealMinimum, "minimum stake reached");
         }
 
         description = description_;
@@ -175,8 +175,8 @@ contract DealNFT is ERC721, IDealNFT {
 
     function _checkClaim() private view {
         require(msg.sender == sponsor, "not the sponsor");
-        require(state() == State.Closing, "not in closing week");
         require(_claimId < _tokenId, "token id out of bounds");
+        require(state() == State.Closing, "not in closing week");
         require(totalStaked >= dealMinimum, "minimum stake not reached");
     }
 
@@ -241,7 +241,7 @@ contract DealNFT is ERC721, IDealNFT {
     }
 
     function _isClaimed() private view returns (bool) {
-        return totalClaimed >= dealMaximum || totalClaimed >= totalStaked;
+        return totalClaimed > 0 && (totalClaimed >= dealMaximum || totalClaimed >= totalStaked);
     }
 
     function _beforeClose() private view returns (bool) {

@@ -83,13 +83,14 @@ contract DealNFTTransferrable is Test {
         assertEq(escrowToken.balanceOf(staker2), amount);
     }
 
-    function testFail_TransferNFT() public {
+    function test_RevertWhen_TransferNFT() public {
         _configure();
         vm.prank(sponsor);
         deal.setTransferrable(false);
         _stake(staker1);
         assertEq(deal.ownerOf(tokenId), staker1);
 
+        vm.expectRevert("not transferrable");
         vm.prank(staker1);
         deal.transferFrom(staker1, staker2, tokenId);
     }
@@ -113,9 +114,9 @@ contract DealNFTTransferrable is Test {
     }
 
     function _approvals() internal {
-        vm.prank(sponsor);
+        vm.startPrank(sponsor);
         deal.approveStaker(staker1, amount);
-        vm.prank(sponsor);
         deal.approveStaker(staker2, amount);
+        vm.stopPrank();
     }
 }

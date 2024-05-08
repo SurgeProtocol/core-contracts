@@ -52,13 +52,13 @@ contract DealTest is Test {
             1 weeks
         );
 
-        assertEq(uint256(deal.state()), 0); // Configuring
+        assertEq(uint256(deal.state()), uint256(DealNFT.State.Configuration));
         vm.prank(sponsor);
         deal.configure("lorem ipsum", block.timestamp + 2 weeks, 0, 1000);
         vm.prank(sponsor);
         deal.approveStaker(staker, amount);
 
-        assertEq(uint256(deal.state()), 1); // Active
+        assertEq(uint256(deal.state()), uint256(DealNFT.State.Active));
         escrowToken.transfer(address(staker), amount);
     }
 
@@ -109,10 +109,10 @@ contract DealTest is Test {
 
     function test_Claim() public {
         stake();
-        assertEq(uint256(deal.state()), 1); // Active
+        assertEq(uint256(deal.state()), uint256(DealNFT.State.Active));
 
         skip(15 days);
-        assertEq(uint256(deal.state()), 2); // Closing
+        assertEq(uint256(deal.state()), uint256(DealNFT.State.Closing));
 
         vm.prank(sponsor);
         deal.claim();

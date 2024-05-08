@@ -61,14 +61,19 @@ contract DealNFTStake is Test {
         );
         escrowToken.transfer(address(staker1), amount);
         escrowToken.transfer(address(staker2), amount);
+
+        vm.prank(staker1);
+        escrowToken.approve(address(deal), amount);
+        vm.prank(staker2);
+        escrowToken.approve(address(deal), amount);
     }
 
     function test_Stake() public {
-        vm.prank(sponsor);
-        deal.configure("lorem ipsum", block.timestamp + 2 weeks, 0, 1000);
+        _configure();
         _approvals();
 
-        _stake(staker1);
+        vm.prank(staker1);
+        deal.stake(amount);
         tokenId = 0;
 
         assertEq(deal.stakedAmount(tokenId), amount);
@@ -80,7 +85,8 @@ contract DealNFTStake is Test {
         assertEq(escrowToken.balanceOf(staker1), 0);
         assertEq(deal.ownerOf(tokenId), staker1);
 
-        _stake(staker2);
+        vm.prank(staker2);
+        deal.stake(amount);
         tokenId = 1;
 
         assertEq(deal.stakedAmount(tokenId), amount);
@@ -93,30 +99,45 @@ contract DealNFTStake is Test {
         assertEq(deal.ownerOf(tokenId), staker2);
     }
 
-    function testFail_StakeBeforeActive() public {
-        assertEq(uint256(deal.state()), 0);
-        _stake(staker1);
+    function test_RevertWhen_StakeBeforeActive() public {
+        assertEq(uint256(deal.state()), uint256(DealNFT.State.Configuration));
+        vm.expectRevert("not an active deal");
+        vm.prank(staker1);
+        deal.stake(amount);
     }
 
-    function testFail_StakeAfterActive() public {
+    function test_RevertWhen_StakeAfterActive() public {
+        _configure();
+        skip(10 days);
+
+        vm.expectRevert("not an active deal");
+        vm.prank(staker1);
+        deal.stake(amount);
+    }
+
+    function test_RevertWhen_StakeZero() public {
+        _configure();
+        vm.expectRevert("invalid amount");
+        vm.prank(staker1);
+        deal.stake(0);
+    }
+
+    function test_RevertWhen_NotApproved() public {
+        _configure();
+        vm.expectRevert("insuficient approval");
+        vm.prank(staker1);
+        deal.stake(amount);
+    }
+
+    function _configure() internal {
         vm.prank(sponsor);
         deal.configure("lorem ipsum", block.timestamp + 8 days, 0, 1000);
-        skip(10 days);
-        _stake(staker1);
-    }
-
-    // ***** Internals *****
-    function _stake(address user) internal {
-        vm.startPrank(user);
-        escrowToken.approve(address(deal), amount);
-        deal.stake(amount);
-        vm.stopPrank();
     }
 
     function _approvals() internal {
-        vm.prank(sponsor);
+        vm.startPrank(sponsor);
         deal.approveStaker(staker1, amount);
-        vm.prank(sponsor);
         deal.approveStaker(staker2, amount);
+        vm.stopPrank();
     }
 }

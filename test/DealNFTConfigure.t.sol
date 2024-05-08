@@ -65,73 +65,84 @@ contract DealNFTConfigure is Test {
     }
 
     function test_Configure() public {
-        uint256 _state = uint256(deal.state());
-        assertEq(_state, 0); // Configuring
+        assertEq(uint256(deal.state()), uint256(DealNFT.State.Configuration));
 
         vm.prank(sponsor);
         deal.configure("lorem ipsum", block.timestamp + 2 weeks, 0, 1000);
 
-        _state = uint256(deal.state());
-        assertEq(_state, 1); // Active
+        assertEq(uint256(deal.state()), uint256(DealNFT.State.Active));
     }
 
-    function testFail_ConfigureWithClosingTimeZero() public {
+    function test_ReconfigureWhenActive() public {
         vm.prank(sponsor);
-        deal.configure("lorem ipsum", 0, 0, 1000);
-    }
+        deal.configure("lorem ipsum", block.timestamp + 2 weeks, 0, 1000);
 
-    function testFail_ConfigureWithClosingTimeMinimum() public {
         vm.prank(sponsor);
-        uint256 closingTime = (block.timestamp + 1 weeks);
-        deal.configure("lorem ipsum", closingTime, 0, 1000);
+        deal.configure("lorem ipsum", block.timestamp + 2 weeks, 0, 1000);
+
+        assertEq(uint256(deal.state()), uint256(DealNFT.State.Active));
     }
 
-    function testFail_ConfigureWithWrongRange() public {
+    function test_ReconfigureMinimumNotReached() public {
         vm.prank(sponsor);
-        deal.configure(
-            "lorem ipsum",
-            block.timestamp + 2 weeks,
-            1000,
-            1000
-        );
+        deal.configure("lorem ipsum", block.timestamp + 2 weeks, 1, 1000);
+
+        skip(18 days);
+
+        assertEq(uint256(deal.state()), uint256(DealNFT.State.Closing));
+
+        vm.prank(sponsor);
+        deal.configure("lorem ipsum", block.timestamp + 2 weeks, 1, 1000);
+
+        assertEq(uint256(deal.state()), uint256(DealNFT.State.Active));
     }
 
-    function testFail_ConfigureWithWrongSender() public {
+    function test_RevertWhen_ConfigureWithWrongSender() public {
+        vm.expectRevert("not the sponsor");
         vm.prank(staker);
         deal.configure("lorem ipsum", block.timestamp + 2 weeks, 0, 1000);
     }
 
-    function testFail_ConfigureWhenClosed() public {
+    function test_RevertWhen_ConfigureWithClosingTimeZero() public {
+        vm.expectRevert("invalid closing date");
+        vm.prank(sponsor);
+        deal.configure("lorem ipsum", 0, 0, 1000);
+    }
+
+    function test_RevertWhen_ConfigureWithClosingTimeMinimum() public {
+        vm.expectRevert("invalid closing date");
+        vm.prank(sponsor);
+        deal.configure("lorem ipsum", block.timestamp + 1 weeks, 0, 1000);
+    }
+
+    function test_RevertWhen_ConfigureWithWrongRange() public {
+        vm.expectRevert("wrong deal range");
+        vm.prank(sponsor);
+        deal.configure("lorem ipsum", block.timestamp + 2 weeks, 1000, 1000);
+    }
+
+    function test_RevertWhen_ConfigureWhenClosed() public {
         vm.startPrank(sponsor);
-        deal.configure(
-            "lorem ipsum",
-            block.timestamp + 1 weeks + 1,
-            0,
-            1000
-        );
-        skip(15 days);
+        deal.configure("lorem ipsum", block.timestamp + 8 days, 0, 1000);
+        skip(16 days);
+        vm.expectRevert("cannot configure anymore");
         deal.configure("lorem ipsum", block.timestamp + 2 weeks, 0, 1000);
         vm.stopPrank();
     }
 
-    function testFail_ConfigureReopen() public {
-        vm.startPrank(sponsor);
-        deal.configure(
-            "lorem ipsum",
-            block.timestamp + 1 weeks + 1,
-            1,
-            1000
-        );
+    function test_RevertWhen_ConfigureReopen_MinimumReached() public {
+        vm.prank(sponsor);
+        deal.configure("lorem ipsum", block.timestamp + 8 days, 1, 1000);
 
         vm.startPrank(staker);
         escrowToken.approve(address(deal), amount);
         deal.stake(amount);
         vm.stopPrank();
 
-        skip(10 days);
-        uint256 _state = uint256(deal.state());
-        assertEq(_state, 2); // Closing
+        skip(13 days);
+        assertEq(uint256(deal.state()), uint256(DealNFT.State.Closing));
+        vm.expectRevert("minimum stake reached");
+        vm.prank(sponsor);
         deal.configure("lorem ipsum", block.timestamp + 2 weeks, 0, 1000);
-        vm.stopPrank();
     }
 }
