@@ -32,12 +32,10 @@ contract DealNFTClaim is Test {
         staker1 = vm.addr(2);
         staker2 = vm.addr(3);
 
-        escrowToken = new ERC20PresetFixedSupply(
-            "escrow",
-            "escrow",
-            100,
-            address(this)
-        );
+        escrowToken = new ERC20PresetFixedSupply("escrow", "escrow", 100, address(this));
+        escrowToken.transfer(address(staker1), amount);
+        escrowToken.transfer(address(staker2), amount);
+
         registry = new ERC6551Registry();
         forwarder = new Multicall3();
         guardian = new AccountGuardian(address(this));
@@ -62,8 +60,10 @@ contract DealNFTClaim is Test {
 
         _approvals();
 
-        escrowToken.transfer(address(staker1), amount);
-        escrowToken.transfer(address(staker2), amount);
+        vm.prank(staker1);
+        escrowToken.approve(address(deal), amount);
+        vm.prank(staker2);
+        escrowToken.approve(address(deal), amount);
     }
 
     function test_Claim() public {
@@ -123,15 +123,24 @@ contract DealNFTClaim is Test {
         deal.claim();
     }
 
-    function testFail_ClaimAfterCanceled() public {
-        _setup();
+    function test_RevertWhen_ClaimAfterCanceled() public {
+        vm.prank(sponsor);
+        deal.configure("lorem ipsum", block.timestamp + 2 weeks, 0, 1000);
 
-        vm.startPrank(sponsor);
+        vm.prank(staker1);
+        deal.stake(amount);
+
+        vm.prank(staker2);
+        deal.stake(amount);
+
+        vm.prank(sponsor);
         deal.cancel();
 
+        assertEq(uint256(deal.state()), uint256(DealNFT.State.Canceled));
+
         vm.expectRevert("not in closing week");
+        vm.prank(sponsor);
         deal.claim();
-        vm.stopPrank();
     }
 
     function test_RevertWhen_ClaimOutOfBounds() public {
@@ -171,10 +180,8 @@ contract DealNFTClaim is Test {
     }
 
     function _stake(address user) internal {
-        vm.startPrank(user);
-        escrowToken.approve(address(deal), amount);
+        vm.prank(user);
         deal.stake(amount);
-        vm.stopPrank();
     }
 
     function _approvals() internal {
