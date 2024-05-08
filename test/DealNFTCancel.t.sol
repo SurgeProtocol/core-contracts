@@ -51,7 +51,7 @@ contract DealNFTCancel is Test {
             address(registry),
             payable(address(implementation)),
             sponsor,
-            "https://test.com/hello.png",
+            "https://test.com",
             "https://test.com",
             "https://x.com/@example",
             address(escrowToken),

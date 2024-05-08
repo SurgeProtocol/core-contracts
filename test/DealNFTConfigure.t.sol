@@ -51,7 +51,7 @@ contract DealNFTConfigure is Test {
             address(registry),
             payable(address(implementation)),
             sponsor,
-            "https://test.com/hello.png",
+            "https://test.com",
             "https://test.com",
             "https://x.com/@example",
             address(escrowToken),
@@ -107,13 +107,13 @@ contract DealNFTConfigure is Test {
     }
 
     function test_RevertWhen_ConfigureWithClosingTimeZero() public {
-        vm.expectRevert("invalid closing date");
+        vm.expectRevert("invalid closing time");
         vm.prank(sponsor);
         deal.configure("lorem ipsum", 0, 0, 1000);
     }
 
     function test_RevertWhen_ConfigureWithClosingTimeMinimum() public {
-        vm.expectRevert("invalid closing date");
+        vm.expectRevert("invalid closing time");
         vm.prank(sponsor);
         deal.configure("lorem ipsum", block.timestamp + 1 weeks, 0, 1000);
     }

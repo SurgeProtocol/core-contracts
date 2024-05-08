@@ -87,7 +87,7 @@ contract DealNFT is ERC721, IDealNFT {
         _implementation = AccountV3TBD(implementation_);
 
         sponsor = sponsor_;
-        baseURI = string(abi.encodePacked(baseURI_, "/deal/", address(this), "/token/"));
+        baseURI = string(abi.encodePacked(baseURI_, "/chain/", block.chainid, "/deal/", address(this), "/token/"));
         web = web_;
         twitter = twitter_;
         escrowToken = IERC20(escrowToken_);
@@ -112,7 +112,7 @@ contract DealNFT is ERC721, IDealNFT {
         uint256 dealMaximum_    
     ) external {
         require(msg.sender == sponsor, "not the sponsor");
-        require(closingTime_ > block.timestamp + closingDelay, "invalid closing date");
+        require(closingTime_ > block.timestamp + closingDelay, "invalid closing time");
         require(dealMinimum_ < dealMaximum_, "wrong deal range");
         require(state() < State.Closed, "cannot configure anymore");
 

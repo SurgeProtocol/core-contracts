@@ -17,7 +17,7 @@ contract DeployDealNFT is Script {
         address payable implementation = payable(0xbc9c43812ebD8066117Ae6e9Ad617bB378BFA8A1);
 
         address sponsor = 0x7Adc86401f246B87177CEbBEC189dE075b75Af3A;
-        string memory nftURI = "https://sweepr.netlify.app/static/media/logo.1e4b383f4a2369331beb.png";
+        string memory baseURI = "https://surgetokens.netlify.app";
         string memory web = "https://maxos-2.gitbook.io/surge/test-deal-3-may";
         string memory twitter = "https://twitter.com/SweeprFi";
         address escrowToken = 0xB88a5Ac00917a02d82c7cd6CEBd73E2852d43574;
@@ -32,7 +32,7 @@ contract DeployDealNFT is Script {
                         registry,
                         implementation,
                         sponsor,
-                        nftURI,
+                        baseURI,
                         web,
                         twitter,
                         escrowToken,
@@ -50,7 +50,7 @@ contract DeployDealNFT is Script {
                 registry,
                 implementation,
                 sponsor,
-                nftURI,
+                baseURI,
                 web,
                 twitter,
                 escrowToken,
@@ -76,7 +76,7 @@ contract DeployDealNFT is Script {
                 " ",
                 Strings.toHexString(sponsor),
                 " ",
-                nftURI,
+                baseURI,
                 " ",
                 web,
                 " ",
