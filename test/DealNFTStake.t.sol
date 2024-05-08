@@ -124,7 +124,7 @@ contract DealNFTStake is Test {
 
     function test_RevertWhen_NotApproved() public {
         _configure();
-        vm.expectRevert("insuficient approval");
+        vm.expectRevert("insufficient approval");
         vm.prank(staker1);
         deal.stake(amount);
     }

@@ -7,11 +7,15 @@ import {SafeERC20} from "openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import {IERC6551Registry} from "erc6551/interfaces/IERC6551Registry.sol";
 import {AccountV3TBD} from "./AccountV3TBD.sol";
 import {IDealNFT} from "./interfaces/IDealNFT.sol";
-import {ReentrancyGuard} from "openzeppelin/security/ReentrancyGuard.sol";
 
-contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
+/**
+ * @title DealNFT
+ * @notice Contract for managing NFT-based deals
+ */
+contract DealNFT is ERC721, IDealNFT {
     using SafeERC20 for IERC20;
     
+    // Events
     event Deal(address indexed sponsor, address escrowToken);
     event Configure(address indexed sponsor, string description, uint256 closingTime, uint256 dealMinimum, uint256 dealMaximum);
     event Transferrable(address indexed sponsor, bool transferrable);
@@ -21,15 +25,19 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     event Stake(address indexed staker, address tokenBoundAccount, uint256 tokenId, uint256 amount);
     event Unstake(address indexed staker, address tokenBoundAccount, uint256 tokenId, uint256 amount);
 
+    // Enum for deal states
     enum State { Configuration, Active, Closing, Closed, Canceled }
 
+    // Private state variables
     uint256 private _tokenId;
     uint256 private _claimId;
     State private _state;
 
+    // External contracts
     IERC6551Registry private _registry;
     AccountV3TBD private _implementation;
 
+    // Deal parameters
     address public sponsor;
     string public nftURI;
     string public web;
@@ -44,14 +52,27 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     uint256 public dealMinimum;
     uint256 public dealMaximum;
 
+    // Deal statistics
     uint256 public totalStaked;
     uint256 public totalClaimed;
     mapping(uint256 tokenId => uint256) public stakedAmount;
     mapping(uint256 tokenId => uint256) public claimedAmount;
 
+    // Staker approvals
     mapping(address staker => uint256) public approvalOf;
     mapping(address staker => uint256) public stakeOf;
 
+    /**
+     * @notice Constructor to initialize DealNFT contract
+     * @param registry_ The address of the ERC6551 registry
+     * @param implementation_ The address of the AccountV3TBD implementation
+     * @param sponsor_ The address of the sponsor of the deal
+     * @param nftURI_ The URI for the NFTs
+     * @param web_ The website associated with the deal
+     * @param twitter_ The Twitter account associated with the deal
+     * @param escrowToken_ The address of the escrow token
+     * @param closingDelay_ The delay before closing the deal
+     */
     constructor(
         address registry_,
         address payable implementation_,
@@ -77,12 +98,19 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         emit Deal(sponsor, escrowToken_);
     }
 
+    /**
+     * @notice Configure the deal
+     * @param description_ Description of the deal
+     * @param closingTime_ Closing time of the deal
+     * @param dealMinimum_ Minimum amount of tokens required for the deal
+     * @param dealMaximum_ Maximum amount of tokens allowed for the deal
+     */
     function configure(
         string memory description_,
         uint256 closingTime_,
         uint256 dealMinimum_,
         uint256 dealMaximum_    
-    ) external nonReentrant {
+    ) external {
         require(msg.sender == sponsor, "not the sponsor");
         require(closingTime_ > block.timestamp + closingDelay, "invalid closing date");
         require(dealMinimum_ < dealMaximum_, "wrong deal range");
@@ -102,7 +130,11 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         emit Configure(sponsor, description_, closingTime_, dealMinimum_, dealMaximum_);
     }
 
-    function setTransferrable(bool transferrable_) external nonReentrant {
+    /**
+     * @notice Set whether the NFTs are transferrable or not
+     * @param transferrable_ Boolean indicating if NFTs are transferrable
+     */
+    function setTransferrable(bool transferrable_) external {
         require(msg.sender == sponsor, "not the sponsor");
         require(!_afterClosed(), "cannot be changed anymore");
 
@@ -110,14 +142,22 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         emit Transferrable(sponsor, transferrable_);
     }
 
-    function approveStaker(address staker_, uint256 amount_) external nonReentrant {
+    /**
+     * @notice Approve a staker to participate in the deal
+     * @param staker_ The address of the staker to whitelist
+     * @param amount_ The approval amount for the staker
+     */
+    function approveStaker(address staker_, uint256 amount_) external {
         require(msg.sender == sponsor, "not the sponsor");
 
         approvalOf[staker_] = amount_;
         emit StakerApproval(sponsor, staker_, amount_);
     }
 
-    function cancel() external nonReentrant {
+    /**
+     * @notice Cancel the deal
+     */
+    function cancel() external {
         require(msg.sender == sponsor, "not the sponsor");
         require(state() <= State.Active, "cannot be canceled");
 
@@ -125,10 +165,14 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         emit Cancel(sponsor);
     }
 
-    function stake(uint256 amount) external nonReentrant {
+    /**
+     * @notice Stake tokens into the deal
+     * @param amount The amount of tokens to stake
+     */
+    function stake(uint256 amount) external {
         require(state() == State.Active, "not an active deal");
         require(amount > 0, "invalid amount");
-        require(approvalOf[msg.sender] >= stakeOf[msg.sender] + amount, "insuficient approval");
+        require(approvalOf[msg.sender] >= stakeOf[msg.sender] + amount, "insufficient approval");
 
         uint256 newTokenId = _tokenId++;
         _safeMint(msg.sender, newTokenId);
@@ -143,7 +187,11 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         emit Stake(msg.sender, newAccount, newTokenId, amount);
     }
 
-    function unstake(uint256 tokenId) external nonReentrant {
+    /**
+     * @notice Unstake tokens from the deal
+     * @param tokenId The ID of the token to unstake
+     */
+    function unstake(uint256 tokenId) external {
         require(msg.sender == ownerOf(tokenId), "not the nft owner");
         require(state() != State.Closing, "cannot withdraw during closing week");
 
@@ -160,7 +208,10 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         emit Unstake(msg.sender, tokenBoundAccount, tokenId, balance);
     }
 
-    function claim() external nonReentrant {
+    /**
+     * @notice Claim tokens from the deal
+     */
+    function claim() external {
         _checkClaim();
 
         while(_claimId < _tokenId) {
@@ -168,11 +219,17 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         }
     }
 
-    function claimNext() external nonReentrant {
+    /**
+     * @notice Claim the next token id from the deal
+     */
+    function claimNext() external {
         _checkClaim();
         _claimNext();
     }
 
+    /**
+     * @notice Internal function to check claim requirements
+     */
     function _checkClaim() private view {
         require(msg.sender == sponsor, "not the sponsor");
         require(_claimId < _tokenId, "token id out of bounds");
@@ -180,6 +237,10 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         require(totalStaked >= dealMinimum, "minimum stake not reached");
     }
 
+    /**
+     * @notice Internal function to claim the next token id from the deal
+     * @dev funds are sent from the TBA to the sponsor until dealMaximum.
+     */
     function _claimNext() private {
         uint256 tokenId = _claimId++;
         uint256 amount = stakedAmount[tokenId];
@@ -198,6 +259,10 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         }
     }
 
+    /**
+     * @notice Get current state of the deal
+     * @dev a deal is considered closed if the tokens have been claimed by the sponsor
+     */
     function state() public view returns (State) {
         if(_state == State.Canceled) return State.Canceled;
         if(_beforeClose()) return _state;
@@ -207,22 +272,30 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         revert("invalid state");
     }
 
+    /**
+     * @notice Get next available token id
+     */
     function nextId() public view returns (uint256) {
         return _tokenId;
     }
 
+    /**
+     * @notice Get token URI
+     */
     function tokenURI(uint256) public view override returns (string memory) {
         return nftURI;
     }
 
-    function supportsInterface(bytes4 interfaceId) public view override returns (bool) {
-        return super.supportsInterface(interfaceId);
-    }
-
+    /**
+     * @notice Get the TBA of a particular NFT
+     */
     function getTokenBoundAccount(uint256 tokenId) public view returns(address) {
         return _registry.account(address(_implementation), bytes32(abi.encode(0)), block.chainid, address(this), tokenId);
     }
 
+    /**
+     * @notice Create an account bound to the NFT
+     */
     function _createTokenBoundAccount(uint256 tokenId) private returns(address) {
         bytes32 salt = bytes32(abi.encode(0));
         address payable walletAddress = payable(_registry.createAccount(address(_implementation), salt, block.chainid, address(this), tokenId));
@@ -233,26 +306,45 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         return walletAddress;
     }
 
+    /**
+     * @notice Block escrow token from being interacted with from the TBA
+     */
     function allowToken(address to) external view returns (bool) {
         return to != address(escrowToken);
     }
 
+    /**
+     * @notice Check if the deal is in the closing period
+     */
     function _isClosing() private view returns (bool) {
         return !_beforeClose() && !_afterClosed();
     }
 
+    /**
+     * @notice Check if all tokens have been claimed by the sponsor
+     */
     function _isClaimed() private view returns (bool) {
         return totalClaimed > 0 && (totalClaimed >= dealMaximum || totalClaimed >= totalStaked);
     }
 
+    /**
+     * @notice Check if the current time is before closing time
+     */
     function _beforeClose() private view returns (bool) {
         return block.timestamp < closingTime;
     }
 
+    /**
+     * @notice Check if the current time is after closing time
+     */
     function _afterClosed() private view returns (bool) {
         return block.timestamp > (closingTime + closingPeriod);
     }
 
+    /**
+     * @inheritdoc ERC721
+     * @notice Move approval and stake from one account to the other
+     */
     function _transfer(address from, address to, uint256 tokenId) internal override {
         require(transferrable, "not transferrable");
 
