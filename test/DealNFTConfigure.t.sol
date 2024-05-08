@@ -67,6 +67,9 @@ contract DealNFTConfigure is Test {
     function test_Configure() public {
         assertEq(uint256(deal.state()), uint256(DealNFT.State.Configuration));
 
+        vm.expectEmit(address(deal));
+        emit DealNFT.Configure(sponsor, "lorem ipsum", block.timestamp + 2 weeks, 0, 1000);
+
         vm.prank(sponsor);
         deal.configure("lorem ipsum", block.timestamp + 2 weeks, 0, 1000);
 

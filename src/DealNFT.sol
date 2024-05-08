@@ -12,13 +12,13 @@ contract DealNFT is ERC721, IDealNFT {
     using SafeERC20 for IERC20;
     
     event Deal(address indexed sponsor, address escrowToken);
-    event Configure(string description, uint256 closingTime, uint256 dealMinimum, uint256 dealMaximum);
-    event Stake(address indexed staker, address indexed walletAddress, uint256 tokenId, uint256 amount);
-    event Unstake(address indexed tokenBoundAccount, address indexed nftOwner, uint256 tokenId, uint256 amount);
-    event Claim(address indexed sponsor, uint256 tokenId, uint256 amount);
-    event Approval(address indexed staker, uint256 amount);
-    event Cancel();
-    event Transferrable(bool transferrable);
+    event Configure(address indexed sponsor, string description, uint256 closingTime, uint256 dealMinimum, uint256 dealMaximum);
+    event Transferrable(address indexed sponsor, bool transferrable);
+    event StakerApproval(address indexed sponsor, address staker, uint256 amount);
+    event Cancel(address indexed sponsor);
+    event Claim(address indexed sponsor, address indexed staker, uint256 tokenId, uint256 amount);
+    event Stake(address indexed staker, address tokenBoundAccount, uint256 tokenId, uint256 amount);
+    event Unstake(address indexed staker, address tokenBoundAccount, uint256 tokenId, uint256 amount);
 
     enum State { Configuration, Active, Closing, Closed, Canceled }
 
@@ -98,7 +98,7 @@ contract DealNFT is ERC721, IDealNFT {
 
         _state = State.Active;
 
-        emit Configure(description_, closingTime_, dealMinimum_, dealMaximum_);
+        emit Configure(sponsor, description_, closingTime_, dealMinimum_, dealMaximum_);
     }
 
     function setTransferrable(bool transferrable_) external {
@@ -106,14 +106,14 @@ contract DealNFT is ERC721, IDealNFT {
         require(!_afterClosed(), "cannot be changed anymore");
 
         transferrable = transferrable_;
-        emit Transferrable(transferrable_);
+        emit Transferrable(sponsor, transferrable_);
     }
 
     function approveStaker(address staker_, uint256 amount_) external {
         require(msg.sender == sponsor, "not the sponsor");
 
         approvalOf[staker_] = amount_;
-        emit Approval(staker_, amount_);
+        emit StakerApproval(sponsor, staker_, amount_);
     }
 
     function cancel() external {
@@ -121,7 +121,7 @@ contract DealNFT is ERC721, IDealNFT {
         require(state() <= State.Active, "cannot be canceled");
 
         _state = State.Canceled;
-        emit Cancel();
+        emit Cancel(sponsor);
     }
 
     function stake(uint256 amount) external {
@@ -143,8 +143,7 @@ contract DealNFT is ERC721, IDealNFT {
     }
 
     function unstake(uint256 tokenId) external {
-        address nftOwner = ownerOf(tokenId);
-        require(msg.sender == nftOwner, "not the nft owner");
+        require(msg.sender == ownerOf(tokenId), "not the nft owner");
         require(state() != State.Closing, "cannot withdraw during closing week");
 
         if(state() <= State.Active){
@@ -155,9 +154,9 @@ contract DealNFT is ERC721, IDealNFT {
 
         address tokenBoundAccount = getTokenBoundAccount(tokenId);
         uint256 balance = escrowToken.balanceOf(tokenBoundAccount);
-        escrowToken.safeTransferFrom(tokenBoundAccount, nftOwner, balance);
+        escrowToken.safeTransferFrom(tokenBoundAccount, msg.sender, balance);
 
-        emit Unstake(tokenBoundAccount, nftOwner, tokenId, balance);
+        emit Unstake(msg.sender, tokenBoundAccount, tokenId, balance);
     }
 
     function claim() external {
@@ -193,7 +192,8 @@ contract DealNFT is ERC721, IDealNFT {
             claimedAmount[tokenId] = amount;
             totalClaimed += amount;
             // TODO: hook transfers rewards to TBA
-            emit Claim(sponsor, tokenId, amount);
+
+            emit Claim(sponsor, ownerOf(tokenId), tokenId, amount);
         }
     }
 

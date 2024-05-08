@@ -37,10 +37,15 @@ contract DealTest is Test {
         forwarder = new Multicall3();
         guardian = new AccountGuardian(address(this));
 
+        escrowToken.transfer(address(staker), amount);
+
         implementation = new AccountV3TBD(
             address(1), address(forwarder), address(registry), address(guardian)
         );
 
+        vm.expectEmit(true, false, false, true);
+        emit DealNFT.Deal(sponsor, address(escrowToken));
+    
         deal = new DealNFT(
             address(registry),
             payable(address(implementation)),
@@ -52,14 +57,17 @@ contract DealTest is Test {
             1 weeks
         );
 
+
         assertEq(uint256(deal.state()), uint256(DealNFT.State.Configuration));
         vm.prank(sponsor);
         deal.configure("lorem ipsum", block.timestamp + 2 weeks, 0, 1000);
+        assertEq(uint256(deal.state()), uint256(DealNFT.State.Active));
+
         vm.prank(sponsor);
         deal.approveStaker(staker, amount);
 
-        assertEq(uint256(deal.state()), uint256(DealNFT.State.Active));
-        escrowToken.transfer(address(staker), amount);
+        vm.prank(staker);
+        escrowToken.approve(address(deal), amount);
     }
 
     function test_Config() public view {
@@ -86,6 +94,9 @@ contract DealTest is Test {
     }
 
     function test_Stake() public {
+        vm.expectEmit(address(deal));
+        emit DealNFT.Stake(staker, deal.getTokenBoundAccount(tokenId), tokenId, amount);
+
         stake();
 
         assertEq(deal.stakedAmount(tokenId), amount);
@@ -97,6 +108,9 @@ contract DealTest is Test {
 
     function test_Unstake() public {
         stake();
+
+        vm.expectEmit(address(deal));
+        emit DealNFT.Unstake(staker, deal.getTokenBoundAccount(tokenId), tokenId, amount);
 
         vm.prank(staker);
         deal.unstake(tokenId);
@@ -113,6 +127,9 @@ contract DealTest is Test {
 
         skip(15 days);
         assertEq(uint256(deal.state()), uint256(DealNFT.State.Closing));
+
+        vm.expectEmit(address(deal));
+        emit DealNFT.Claim(sponsor, staker, tokenId, amount);
 
         vm.prank(sponsor);
         deal.claim();
@@ -141,9 +158,7 @@ contract DealTest is Test {
     }
 
     function stake() internal {
-        vm.startPrank(staker);
-        escrowToken.approve(address(deal), amount);
+        vm.prank(staker);
         deal.stake(amount);
-        vm.stopPrank();
     }
 }

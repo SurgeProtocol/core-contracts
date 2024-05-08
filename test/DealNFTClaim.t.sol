@@ -67,7 +67,9 @@ contract DealNFTClaim is Test {
     }
 
     function test_Claim() public {
-        _configure();
+        vm.prank(sponsor);
+        deal.configure("lorem ipsum", block.timestamp + 2 weeks, 5, 13);
+
         _stake(staker1);
         _stake(staker2);
         assertEq(deal.totalStaked(), amount * 2);
@@ -75,16 +77,21 @@ contract DealNFTClaim is Test {
         skip(15 days);
         assertEq(uint256(deal.state()), uint256(DealNFT.State.Closing));
 
+        vm.expectEmit(address(deal));
+        emit DealNFT.Claim(sponsor, staker1, 0, 10);
+        vm.expectEmit(address(deal));
+        emit DealNFT.Claim(sponsor, staker2, 1, 3);
+
         vm.prank(sponsor);
         deal.claim();
 
         assertEq(deal.stakedAmount(0), amount);
         assertEq(deal.stakedAmount(1), amount);
         assertEq(escrowToken.balanceOf(deal.getTokenBoundAccount(0)), 0);
-        assertEq(escrowToken.balanceOf(deal.getTokenBoundAccount(1)), 0);
-        assertEq(escrowToken.balanceOf(sponsor), amount * 2);
-        assertEq(deal.totalStaked(), amount * 2);
-        assertEq(deal.totalClaimed(), amount * 2);
+        assertEq(escrowToken.balanceOf(deal.getTokenBoundAccount(1)), 7);
+        assertEq(escrowToken.balanceOf(sponsor), 13);
+        assertEq(deal.totalStaked(), 20);
+        assertEq(deal.totalClaimed(), 13);
     }
 
     function test_RevertWhen_ClaimWithWrongSponsor() public {
@@ -140,12 +147,7 @@ contract DealNFTClaim is Test {
 
     function test_RevertWhen_ClaimMinimumNotReached() public {
         vm.prank(sponsor);
-        deal.configure(
-            "lorem ipsum",
-            block.timestamp + 2 weeks,
-            100,
-            1000
-        );
+        deal.configure("lorem ipsum", block.timestamp + 2 weeks, 100, 1000);
         _stake(staker1);
         _stake(staker2);
         skip(15 days);

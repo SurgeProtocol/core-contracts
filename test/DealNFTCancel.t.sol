@@ -69,6 +69,9 @@ contract DealNFTCancel is Test {
     function test_Cancel() public {
         _stake();
 
+        vm.expectEmit(address(deal));
+        emit DealNFT.Cancel(sponsor);
+
         vm.prank(sponsor);
         deal.cancel();
         assertEq(uint256(deal.state()), uint256(DealNFT.State.Canceled));

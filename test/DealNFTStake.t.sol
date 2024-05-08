@@ -135,9 +135,14 @@ contract DealNFTStake is Test {
     }
 
     function _approvals() internal {
-        vm.startPrank(sponsor);
+        vm.expectEmit(address(deal));
+        emit DealNFT.StakerApproval(sponsor, staker1, amount);
+        vm.prank(sponsor);
         deal.approveStaker(staker1, amount);
+
+        vm.expectEmit(address(deal));
+        emit DealNFT.StakerApproval(sponsor, staker2, amount);
+        vm.prank(sponsor);
         deal.approveStaker(staker2, amount);
-        vm.stopPrank();
     }
 }
