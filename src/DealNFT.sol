@@ -231,13 +231,14 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     function stake(uint256 amount) external nonReentrant {
         require(state() == State.Active, "not an active deal");
         require(amount > 0, "invalid amount");
-        require(approvalOf[msg.sender] >= stakeOf[msg.sender] + amount, "insufficient approval");
+        require(approvalOf[msg.sender] >= amount, "insufficient approval");
 
         uint256 newTokenId = _tokenId++;
 
         stakedAmount[newTokenId] = amount;
         totalStaked += amount;
         stakeOf[msg.sender] += amount;
+        approvalOf[msg.sender] -= amount;
 
         _safeMint(msg.sender, newTokenId);
         address newAccount = _createTokenBoundAccount(newTokenId);
@@ -396,18 +397,13 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
 
     /**
      * @inheritdoc ERC721
-     * @notice Move approval and stake from one account to the other
+     * @notice Move stakeOf from one account to the other
      */
     function _transfer(address from, address to, uint256 tokenId) internal override {
         require(transferrable, "not transferrable");
 
-        uint256 amount = stakedAmount[tokenId];
-
-        approvalOf[from] -= amount;
-        approvalOf[to] += amount;
-
-        stakeOf[from] -= amount;
-        stakeOf[to] += amount;
+        stakeOf[from] -= stakedAmount[tokenId];
+        stakeOf[to] += stakedAmount[tokenId];
 
         super._transfer(from, to, tokenId);
     }
