@@ -3,71 +3,21 @@ pragma solidity 0.8.25;
 
 import {Test, console} from "forge-std/Test.sol";
 import {DealNFT} from "../src/DealNFT.sol";
-import {AccountV3TBD} from "../src/AccountV3TBD.sol";
+import {DealSetup} from "./DealSetup.sol";
 
-import "multicall-authenticated/Multicall3.sol";
-import "erc6551/ERC6551Registry.sol";
-import "tokenbound/src/AccountGuardian.sol";
-
-import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
-import {ERC20PresetFixedSupply} from "openzeppelin/token/ERC20/presets/ERC20PresetFixedSupply.sol";
-
-contract DealNFTTransferrable is Test {
-    Multicall3 forwarder;
-    ERC6551Registry public registry;
-    AccountGuardian public guardian;
-
-    DealNFT public deal;
-    AccountV3TBD public implementation;
-    IERC20 public escrowToken;
-
-    uint256 tokenId = 0;
-    uint256 amount = 10;
-    address sponsor;
-    address staker1;
-    address staker2;
-
+contract DealNFTTransferTest is Test, DealSetup {
     function setUp() public {
-        sponsor = vm.addr(1);
-        staker1 = vm.addr(2);
-        staker2 = vm.addr(3);
+        _init();
 
-        escrowToken = new ERC20PresetFixedSupply(
-            "escrow",
-            "escrow",
-            100,
-            address(this)
-        );
-        registry = new ERC6551Registry();
-        forwarder = new Multicall3();
-        guardian = new AccountGuardian(address(this));
+        _stakerApprovals();
+        _tokenApprovals();
 
-        implementation = new AccountV3TBD(
-            address(1),
-            address(forwarder),
-            address(registry),
-            address(guardian)
-        );
-
-        deal = new DealNFT(
-            address(registry),
-            payable(address(implementation)),
-            sponsor,
-            "https://test.com",
-            "https://test.com",
-            "https://x.com/@example",
-            address(escrowToken),
-            1 weeks
-        );
-
-        _approvals();
-
-        escrowToken.transfer(address(staker1), amount);
+        _setup();
+        _configure();
+        _activate();
     }
 
     function test_TransferNFT() public {
-        _configure();
-
         vm.expectEmit(address(deal));
         emit DealNFT.Transferrable(sponsor, true);
 
@@ -81,13 +31,13 @@ contract DealNFTTransferrable is Test {
         deal.transferFrom(staker1, staker2, tokenId);
         assertEq(deal.ownerOf(tokenId), staker2);
 
+        assertEq(escrowToken.balanceOf(staker2), amount);
         vm.prank(staker2);
         deal.unstake(tokenId);
-        assertEq(escrowToken.balanceOf(staker2), amount);
+        assertEq(escrowToken.balanceOf(staker2), amount*2);
     }
 
     function test_RevertWhen_TransferNFT() public {
-        _configure();
         vm.prank(sponsor);
         deal.setTransferrable(false);
         _stake(staker1);
@@ -98,28 +48,4 @@ contract DealNFTTransferrable is Test {
         deal.transferFrom(staker1, staker2, tokenId);
     }
 
-    // ***** Internals *****
-    function _configure() internal {
-        vm.prank(sponsor);
-        deal.configure(
-            "lorem ipsum",
-            block.timestamp + 2 weeks,
-            0,
-            1000
-        );
-    }
-
-    function _stake(address user) internal {
-        vm.startPrank(user);
-        escrowToken.approve(address(deal), amount);
-        deal.stake(amount);
-        vm.stopPrank();
-    }
-
-    function _approvals() internal {
-        vm.startPrank(sponsor);
-        deal.approveStaker(staker1, amount);
-        deal.approveStaker(staker2, amount);
-        vm.stopPrank();
-    }
 }

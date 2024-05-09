@@ -3,149 +3,142 @@ pragma solidity 0.8.25;
 
 import {Test, console} from "forge-std/Test.sol";
 import {DealNFT} from "../src/DealNFT.sol";
-import {AccountV3TBD} from "../src/AccountV3TBD.sol";
+import {DealSetup} from "./DealSetup.sol";
 
-import "multicall-authenticated/Multicall3.sol";
-import "erc6551/ERC6551Registry.sol";
-import "tokenbound/src/AccountGuardian.sol";
-
-import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
-import {ERC20PresetFixedSupply} from "openzeppelin/token/ERC20/presets/ERC20PresetFixedSupply.sol";
-
-contract DealNFTConfigure is Test {
-    Multicall3 forwarder;
-    ERC6551Registry public registry;
-    AccountGuardian public guardian;
-
-    DealNFT public deal;
-    AccountV3TBD public implementation;
-    IERC20 public escrowToken;
-
-    uint256 tokenId = 0;
-    uint256 amount = 10;
-    address staker;
-    address sponsor;
-
+contract DealNFTConfigureTest is Test, DealSetup {
     function setUp() public {
-        staker = vm.addr(1);
-        sponsor = vm.addr(2);
+        _init();
 
-        escrowToken = new ERC20PresetFixedSupply(
-            "escrow",
-            "escrow",
-            100,
-            address(this)
-        );
-        registry = new ERC6551Registry();
-        forwarder = new Multicall3();
-        guardian = new AccountGuardian(address(this));
+        _stakerApprovals();
+        _tokenApprovals();
+    }
 
-        implementation = new AccountV3TBD(
-            address(1),
-            address(forwarder),
-            address(registry),
-            address(guardian)
-        );
+    function test_Setup() public {
+        // constructor params
+        assertEq(deal.sponsor(), sponsor);
+        assertEq(deal.name(), "SurgeDealTEST");
+        assertEq(deal.symbol(), "SRGTEST");
+        assertEq(uint256(deal.state()), uint256(DealNFT.State.Setup));
 
-        deal = new DealNFT(
-            address(registry),
-            payable(address(implementation)),
-            sponsor,
-            "https://test.com",
-            "https://test.com",
-            "https://x.com/@example",
-            address(escrowToken),
-            1 weeks
-        );
+        // defaults
+        assertEq(deal.nextId(), 0);
+        assertEq(deal.totalStaked(), 0);
+        assertEq(deal.totalClaimed(), 0);
 
-        vm.prank(sponsor);
-        deal.approveStaker(staker, amount);
+        // before setup
+        assertEq(address(deal.escrowToken()), address(0));
+        assertEq(deal.allowToken(address(escrowToken)), true);
+        assertEq(deal.closingDelay(), 0);
+        assertEq(deal.web(), "");
+        assertEq(deal.twitter(), "");
+        assertEq(deal.image(), "");
 
-        escrowToken.transfer(address(staker), amount);
+        _setup();
+
+        // after setup
+        assertEq(address(deal.escrowToken()), address(escrowToken));
+        assertEq(deal.allowToken(address(escrowToken)), false);
+        assertEq(deal.closingDelay(), 30 minutes);
+        assertEq(deal.web(), "https://test1.com");
+        assertEq(deal.twitter(), "https://test2.com");
+        assertEq(deal.image(), "https://test3.com");
     }
 
     function test_Configure() public {
-        assertEq(uint256(deal.state()), uint256(DealNFT.State.Configuration));
+        _setup();
 
-        vm.expectEmit(address(deal));
-        emit DealNFT.Configure(sponsor, "lorem ipsum", block.timestamp + 2 weeks, 0, 1000);
+        // before config
+        assertEq(deal.description(), "");
+        assertEq(deal.closingTime(), type(uint256).max);
+        assertEq(deal.transferrable(), false);
+        assertEq(deal.dealMinimum(), 0);
+        assertEq(deal.dealMaximum(), 0);
 
-        vm.prank(sponsor);
-        deal.configure("lorem ipsum", block.timestamp + 2 weeks, 0, 1000);
+        _configure();
 
+        // after config
+        assertEq(deal.description(), "desc");
+        assertEq(deal.closingTime(), block.timestamp + 2 weeks);
+        assertEq(deal.dealMinimum(), 0);
+        assertEq(deal.dealMaximum(), 1000);
+        assertEq(deal.transferrable(), false);
+    }
+
+    function test_Activate() public {
+        _setup();
+        _configure();
+
+        assertEq(uint256(deal.state()), uint256(DealNFT.State.Setup));
+        _activate();
         assertEq(uint256(deal.state()), uint256(DealNFT.State.Active));
     }
 
     function test_ReconfigureWhenActive() public {
-        vm.prank(sponsor);
-        deal.configure("lorem ipsum", block.timestamp + 2 weeks, 0, 1000);
-
-        vm.prank(sponsor);
-        deal.configure("lorem ipsum", block.timestamp + 2 weeks, 0, 1000);
-
+        _setup();
+        _configure();
+        _activate();
+        
+        assertEq(uint256(deal.state()), uint256(DealNFT.State.Active));
+        _configure();
         assertEq(uint256(deal.state()), uint256(DealNFT.State.Active));
     }
 
     function test_ReconfigureMinimumNotReached() public {
-        vm.prank(sponsor);
-        deal.configure("lorem ipsum", block.timestamp + 2 weeks, 1, 1000);
+        _setup();
+        _activate();
 
+        vm.prank(sponsor);
+        deal.configure("a", block.timestamp + 2 weeks, 1, 1000);
         skip(18 days);
 
-        assertEq(uint256(deal.state()), uint256(DealNFT.State.Closing));
-
-        vm.prank(sponsor);
-        deal.configure("lorem ipsum", block.timestamp + 2 weeks, 1, 1000);
-
+        assertEq(uint256(deal.state()), uint256(DealNFT.State.Claiming));
+        _configure();
         assertEq(uint256(deal.state()), uint256(DealNFT.State.Active));
     }
 
     function test_RevertWhen_ConfigureWithWrongSender() public {
         vm.expectRevert("not the sponsor");
-        vm.prank(staker);
-        deal.configure("lorem ipsum", block.timestamp + 2 weeks, 0, 1000);
+        vm.prank(staker1);
+        deal.configure("a", block.timestamp + 2 weeks, 0, 1000);
     }
 
     function test_RevertWhen_ConfigureWithClosingTimeZero() public {
         vm.expectRevert("invalid closing time");
         vm.prank(sponsor);
-        deal.configure("lorem ipsum", 0, 0, 1000);
+        deal.configure("a", 0, 0, 1000);
     }
 
     function test_RevertWhen_ConfigureWithClosingTimeMinimum() public {
         vm.expectRevert("invalid closing time");
         vm.prank(sponsor);
-        deal.configure("lorem ipsum", block.timestamp + 1 weeks, 0, 1000);
+        deal.configure("a", block.timestamp, 0, 1000);
     }
 
     function test_RevertWhen_ConfigureWithWrongRange() public {
         vm.expectRevert("wrong deal range");
         vm.prank(sponsor);
-        deal.configure("lorem ipsum", block.timestamp + 2 weeks, 1000, 1000);
+        deal.configure("a", block.timestamp + 2 weeks, 1000, 999);
     }
 
     function test_RevertWhen_ConfigureWhenClosed() public {
-        vm.startPrank(sponsor);
-        deal.configure("lorem ipsum", block.timestamp + 8 days, 0, 1000);
-        skip(16 days);
+        _setup();
+        _configure();
+        _activate();
+        skip(4 weeks);
         vm.expectRevert("cannot configure anymore");
-        deal.configure("lorem ipsum", block.timestamp + 2 weeks, 0, 1000);
-        vm.stopPrank();
+        _configure();
     }
 
     function test_RevertWhen_ConfigureReopen_MinimumReached() public {
-        vm.prank(sponsor);
-        deal.configure("lorem ipsum", block.timestamp + 8 days, 1, 1000);
+        _setup();
+        _configure();
+        _activate();
 
-        vm.startPrank(staker);
-        escrowToken.approve(address(deal), amount);
-        deal.stake(amount);
-        vm.stopPrank();
+        _stake(staker1);
+        skip(17 days);
 
-        skip(13 days);
-        assertEq(uint256(deal.state()), uint256(DealNFT.State.Closing));
+        assertEq(uint256(deal.state()), uint256(DealNFT.State.Claiming));
         vm.expectRevert("minimum stake reached");
-        vm.prank(sponsor);
-        deal.configure("lorem ipsum", block.timestamp + 2 weeks, 0, 1000);
+        _configure();
     }
 }

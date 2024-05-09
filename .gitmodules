@@ -5,3 +5,4 @@
 	path = lib/tokenbound
 	url = https://github.com/sweeprfi/tokenbound
 	branch = main
+	ignore = dirty

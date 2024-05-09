@@ -14,14 +14,11 @@ contract DeployDealNFT is Script {
         address factory = 0x4e59b44847b379578588920cA78FbF26c0B4956C;
 
         address registry = 0x000000006551c19487814612e58FE06813775758;
-        address payable implementation = payable(0xbc9c43812ebD8066117Ae6e9Ad617bB378BFA8A1);
-
+        address implementation = 0xbc9c43812ebD8066117Ae6e9Ad617bB378BFA8A1;
         address sponsor = 0x7Adc86401f246B87177CEbBEC189dE075b75Af3A;
+        string memory name = "SurgeDealTEST";
+        string memory symbol = "SRGTEST";
         string memory baseURI = "https://surgetokens.netlify.app";
-        string memory web = "https://maxos-2.gitbook.io/surge/test-deal-3-may";
-        string memory twitter = "https://twitter.com/SweeprFi";
-        address escrowToken = 0xB88a5Ac00917a02d82c7cd6CEBd73E2852d43574;
-        uint256 closingDelay = 30 minutes;
 
         address deal = Create2.computeAddress(
             salt,
@@ -32,11 +29,9 @@ contract DeployDealNFT is Script {
                         registry,
                         implementation,
                         sponsor,
-                        baseURI,
-                        web,
-                        twitter,
-                        escrowToken,
-                        closingDelay
+                        name,
+                        symbol,
+                        baseURI
                     )
                 )
             ),
@@ -50,11 +45,9 @@ contract DeployDealNFT is Script {
                 registry,
                 implementation,
                 sponsor,
-                baseURI,
-                web,
-                twitter,
-                escrowToken,
-                closingDelay
+                name,
+                symbol,
+                baseURI
             );
             vm.stopBroadcast();
 
@@ -69,22 +62,18 @@ contract DeployDealNFT is Script {
             block.chainid,
             deal,
             string.concat(
-                "src/DealNFT.sol:DealNFT --constructor-args $(cast abi-encode \"constructor(address,address,address,string,string,string,address,uint256)\" ",
+                "src/DealNFT.sol:DealNFT --constructor-args $(cast abi-encode \"constructor(address,address,address,string,string,string)\" ",
                 Strings.toHexString(registry),
                 " ",
                 Strings.toHexString(implementation),
                 " ",
                 Strings.toHexString(sponsor),
                 " ",
+                name,
+                " ",
+                symbol,
+                " ",
                 baseURI,
-                " ",
-                web,
-                " ",
-                twitter,
-                " ",
-                Strings.toHexString(escrowToken),
-                " ",
-                Strings.toHexString(closingDelay),
                 ")\n"
             )
         );

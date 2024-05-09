@@ -11,10 +11,10 @@ contract AccountV3TBD is AccountV3 {
     
     constructor(
         address entryPoint_,
-        address multicallForwarder,
-        address erc6551Registry,
-        address guardian
-    ) AccountV3(entryPoint_, multicallForwarder, erc6551Registry, guardian) {}
+        address multicallForwarder_,
+        address erc6551Registry_,
+        address guardian_
+    ) AccountV3(entryPoint_, multicallForwarder_, erc6551Registry_, guardian_) {}
 
     function approve() public {
         (, address tokenContract, ) = token();
