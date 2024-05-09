@@ -4,15 +4,19 @@ pragma solidity 0.8.25;
 import {ERC721} from "openzeppelin/token/ERC721/ERC721.sol";
 import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin/token/ERC20/utils/SafeERC20.sol";
+import {Strings} from "openzeppelin/utils/Strings.sol";
 import {IERC6551Registry} from "erc6551/interfaces/IERC6551Registry.sol";
 import {AccountV3TBD} from "./AccountV3TBD.sol";
 import {IDealNFT} from "./interfaces/IDealNFT.sol";
+
 
 /**
  * @title DealNFT
  * @notice Contract for managing NFT-based deals
  */
 contract DealNFT is ERC721, IDealNFT {
+    using Strings for address;
+    using Strings for uint256;
     using SafeERC20 for IERC20;
     
     // Events
@@ -87,7 +91,7 @@ contract DealNFT is ERC721, IDealNFT {
         _implementation = AccountV3TBD(implementation_);
 
         sponsor = sponsor_;
-        baseURI = string(abi.encodePacked(baseURI_, "/chain/", block.chainid, "/deal/", address(this), "/token/"));
+        baseURI = string(abi.encodePacked(baseURI_, "/chain/", block.chainid.toString(), "/deal/", address(this).toHexString(), "/token/"));
         web = web_;
         twitter = twitter_;
         escrowToken = IERC20(escrowToken_);

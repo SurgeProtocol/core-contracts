@@ -9,10 +9,14 @@ import "multicall-authenticated/Multicall3.sol";
 import "erc6551/ERC6551Registry.sol";
 import "tokenbound/src/AccountGuardian.sol";
 
+import {Strings} from "openzeppelin/utils/Strings.sol";
 import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
 import {ERC20PresetFixedSupply} from "openzeppelin/token/ERC20/presets/ERC20PresetFixedSupply.sol";
 
 contract DealTest is Test {
+    using Strings for address;
+    using Strings for uint256;
+
     Multicall3 forwarder;
     ERC6551Registry public registry;
     AccountGuardian public guardian;
@@ -73,7 +77,7 @@ contract DealTest is Test {
     function test_Config() public view {
         // constructor params
         assertEq(deal.sponsor(), sponsor);
-        assertEq(deal.baseURI(), string(abi.encodePacked("https://test.com/chain/", block.chainid, "/deal/", address(deal), "/token/")));
+        assertEq(deal.baseURI(), string(abi.encodePacked("https://test.com/chain/", block.chainid.toString(), "/deal/", address(deal).toHexString(), "/token/")));
         assertEq(deal.web(), "https://test.com");
         assertEq(deal.twitter(), "https://x.com/@example");
         assertEq(address(deal.escrowToken()), address(escrowToken));
@@ -104,7 +108,7 @@ contract DealTest is Test {
         assertEq(escrowToken.balanceOf(deal.getTokenBoundAccount(tokenId)), amount);
         assertEq(escrowToken.balanceOf(staker), 0);
         assertEq(deal.ownerOf(tokenId), staker);
-        assertEq(deal.tokenURI(tokenId), string(abi.encodePacked("https://test.com/chain/", block.chainid, "/deal/", address(deal), "/token/0")));
+        assertEq(deal.tokenURI(tokenId), string(abi.encodePacked("https://test.com/chain/", block.chainid.toString(), "/deal/", address(deal).toHexString(), "/token/0")));
     }
 
     function test_Unstake() public {
