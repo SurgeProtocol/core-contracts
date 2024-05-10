@@ -115,6 +115,14 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     }
 
     /**
+     * @notice Modifier to check the caller is the sponsor
+     */
+    modifier onlySponsor() {
+        require(msg.sender == sponsor, "not the sponsor");
+        _;
+    }
+
+    /**
      * @notice Setup the deal
      * @param escrowToken_ The address of the escrow token
      * @param closingDelay_ The delay before closing the deal
@@ -128,8 +136,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         string memory web_,
         string memory twitter_,
         string memory image_
-    ) external nonReentrant {
-        require(msg.sender == sponsor, "not the sponsor");
+    ) external nonReentrant onlySponsor {
         require(state() == State.Setup, "cannot setup anymore");
 
         escrowToken = IERC20(escrowToken_);
@@ -145,9 +152,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @notice Activates the deal
      * @dev requires all setup parameters to be set
      */
-    function activate() external nonReentrant {
-        require(msg.sender == sponsor, "not the sponsor");
-
+    function activate() external nonReentrant onlySponsor {
         require(address(escrowToken) != address(0), "sponsor cannot be zero");
         require(closingDelay > 0, "closing delay cannot be zero");
         require(bytes(web).length > 0, "web cannot be empty");
@@ -171,8 +176,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         uint256 closingTime_,
         uint256 dealMinimum_,
         uint256 dealMaximum_
-    ) external nonReentrant {
-        require(msg.sender == sponsor, "not the sponsor");
+    ) external nonReentrant onlySponsor {
         require(closingTime_ > block.timestamp + closingDelay, "invalid closing time");
         require(dealMinimum_ <= dealMaximum_, "wrong deal range");
         require(state() < State.Closed, "cannot configure anymore");
@@ -193,8 +197,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @notice Set whether the NFTs are transferrable or not
      * @param transferrable_ Boolean indicating if NFTs are transferrable
      */
-    function setTransferrable(bool transferrable_) external nonReentrant {
-        require(msg.sender == sponsor, "not the sponsor");
+    function setTransferrable(bool transferrable_) external nonReentrant onlySponsor {
         require(!_afterClosed(), "cannot be changed anymore");
 
         transferrable = transferrable_;
@@ -206,9 +209,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @param staker_ The address of the staker to whitelist
      * @param amount_ The approval amount for the staker
      */
-    function approveStaker(address staker_, uint256 amount_) external nonReentrant {
-        require(msg.sender == sponsor, "not the sponsor");
-
+    function approveStaker(address staker_, uint256 amount_) external nonReentrant onlySponsor {
         approvalOf[staker_] = amount_;
         emit StakerApproval(sponsor, staker_, amount_);
     }
@@ -216,8 +217,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     /**
      * @notice Cancel the deal
      */
-    function cancel() external nonReentrant {
-        require(msg.sender == sponsor, "not the sponsor");
+    function cancel() external nonReentrant onlySponsor {
         require(state() <= State.Active, "cannot be canceled");
 
         _state = State.Canceled;
@@ -271,7 +271,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     /**
      * @notice Claim tokens from the deal
      */
-    function claim() external nonReentrant {
+    function claim() external nonReentrant onlySponsor {
         _checkClaim();
 
         while(_claimId < _tokenId) {
@@ -282,7 +282,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     /**
      * @notice Claim the next token id from the deal
      */
-    function claimNext() external nonReentrant {
+    function claimNext() external nonReentrant onlySponsor {
         _checkClaim();
         _claimNext();
     }
@@ -291,7 +291,6 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @notice Internal function to check claim requirements
      */
     function _checkClaim() private view {
-        require(msg.sender == sponsor, "not the sponsor");
         require(_claimId < _tokenId, "token id out of bounds");
         require(state() == State.Claiming, "not in closing week");
         require(totalStaked >= dealMinimum, "minimum stake not reached");
