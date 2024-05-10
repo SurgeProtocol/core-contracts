@@ -70,7 +70,6 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
 
     // Staker approvals
     mapping(address staker => uint256) public approvalOf;
-    mapping(address staker => uint256) public stakeOf;
 
     /**
      * @notice Constructor to initialize DealNFT contract
@@ -237,7 +236,6 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
 
         stakedAmount[newTokenId] = amount;
         totalStaked += amount;
-        stakeOf[msg.sender] += amount;
         approvalOf[msg.sender] -= amount;
 
         _safeMint(msg.sender, newTokenId);
@@ -256,7 +254,6 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         require(state() != State.Claiming, "cannot withdraw during closing week");
 
         if(state() <= State.Active){
-            stakeOf[msg.sender] -= stakedAmount[tokenId];
             totalStaked -= stakedAmount[tokenId];
             stakedAmount[tokenId] = 0;
         }
@@ -396,14 +393,9 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
 
     /**
      * @inheritdoc ERC721
-     * @notice Move stakeOf from one account to the other
      */
     function _transfer(address from, address to, uint256 tokenId) internal override {
         require(transferrable, "not transferrable");
-
-        stakeOf[from] -= stakedAmount[tokenId];
-        stakeOf[to] += stakedAmount[tokenId];
-
         super._transfer(from, to, tokenId);
     }
 
