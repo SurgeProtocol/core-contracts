@@ -122,6 +122,16 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     }
 
     /**
+     * @notice modifier to check claim requirements
+     */
+    modifier canClaim() {
+        require(_claimId < _tokenId, "token id out of bounds");
+        require(state() == State.Claiming, "not in closing week");
+        require(totalStaked >= dealMinimum, "minimum stake not reached");
+        _;
+    }
+
+    /**
      * @notice Setup the deal
      * @param escrowToken_ The address of the escrow token
      * @param closingDelay_ The delay before closing the deal
@@ -276,9 +286,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     /**
      * @notice Claim tokens from the deal
      */
-    function claim() external nonReentrant onlySponsor {
-        _checkClaim();
-
+    function claim() external nonReentrant onlySponsor canClaim {
         while(_claimId < _tokenId) {
             _claimNext();
         }
@@ -287,18 +295,8 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     /**
      * @notice Claim the next token id from the deal
      */
-    function claimNext() external nonReentrant onlySponsor {
-        _checkClaim();
+    function claimNext() external nonReentrant onlySponsor canClaim {
         _claimNext();
-    }
-
-    /**
-     * @notice Internal function to check claim requirements
-     */
-    function _checkClaim() private view {
-        require(_claimId < _tokenId, "token id out of bounds");
-        require(state() == State.Claiming, "not in closing week");
-        require(totalStaked >= dealMinimum, "minimum stake not reached");
     }
 
     /**
