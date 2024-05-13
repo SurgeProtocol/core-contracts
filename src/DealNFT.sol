@@ -232,6 +232,9 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         require(amount > 0, "invalid amount");
         require(approvalOf[msg.sender] >= amount, "insufficient approval");
 
+        require(escrowToken.allowance(msg.sender, address(this)) >= amount, "insufficient allowance");
+        require(escrowToken.balanceOf(msg.sender) >= amount, "insufficient balance");
+
         uint256 newTokenId = _tokenId++;
 
         stakedAmount[newTokenId] = amount;
@@ -253,13 +256,18 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         require(msg.sender == ownerOf(tokenId), "not the nft owner");
         require(state() != State.Claiming, "cannot withdraw during closing week");
 
+        uint256 amount = stakedAmount[tokenId];
+        require(amount > 0, "nothing to unstake");
+
+        address tokenBoundAccount = getTokenBoundAccount(tokenId);
+        uint256 balance = escrowToken.balanceOf(tokenBoundAccount);
+        require(balance >= amount, "insufficient balance");
+
         if(state() <= State.Active){
             totalStaked -= stakedAmount[tokenId];
             stakedAmount[tokenId] = 0;
         }
 
-        address tokenBoundAccount = getTokenBoundAccount(tokenId);
-        uint256 balance = escrowToken.balanceOf(tokenBoundAccount);
         escrowToken.safeTransferFrom(tokenBoundAccount, msg.sender, balance);
 
         emit Unstake(msg.sender, tokenBoundAccount, tokenId, balance);
