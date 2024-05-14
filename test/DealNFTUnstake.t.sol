@@ -76,7 +76,7 @@ contract DealNFTUnstakeTest is Test, DealSetup {
         skip(15 days);
         assertEq(uint256(deal.state()), uint256(DealNFT.State.Claiming));
 
-        vm.expectRevert("cannot withdraw during closing week");
+        vm.expectRevert("cannot unstake during closing week");
         vm.prank(staker1);
         deal.unstake(0);
     }

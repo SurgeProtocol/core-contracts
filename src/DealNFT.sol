@@ -264,7 +264,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      */
     function unstake(uint256 tokenId) external nonReentrant {
         require(msg.sender == ownerOf(tokenId), "not the nft owner");
-        require(state() != State.Claiming, "cannot withdraw during closing week");
+        require(state() != State.Claiming, "cannot unstake during closing week");
 
         uint256 amount = stakedAmount[tokenId];
         require(amount > 0, "nothing to unstake");
