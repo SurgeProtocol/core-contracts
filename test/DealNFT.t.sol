@@ -60,8 +60,10 @@ contract DealNFTTest is Test, DealSetup {
         deal.unstake(tokenId);
 
         assertEq(deal.stakedAmount(tokenId), 0);
-        assertEq(escrowToken.balanceOf(staker1), amount);
+        assertEq(escrowToken.balanceOf(staker1), 950000);
         assertEq(escrowToken.balanceOf(deal.getTokenBoundAccount(tokenId)), 0);
+        assertEq(escrowToken.balanceOf(sponsor), 25000);
+        assertEq(escrowToken.balanceOf(treasury), 25000);
         assertEq(deal.totalStaked(), 0);
     }
 
@@ -79,7 +81,8 @@ contract DealNFTTest is Test, DealSetup {
         deal.claim();
 
         assertEq(deal.stakedAmount(tokenId), amount);
-        assertEq(escrowToken.balanceOf(sponsor), amount);
+        assertEq(escrowToken.balanceOf(sponsor), 970000);
+        assertEq(escrowToken.balanceOf(treasury), 30000);
         assertEq(escrowToken.balanceOf(deal.getTokenBoundAccount(tokenId)), 0);
         assertEq(deal.totalStaked(), amount);
         assertEq(deal.totalClaimed(), amount);
@@ -87,20 +90,20 @@ contract DealNFTTest is Test, DealSetup {
 
     function test_TransferOtherTokens() public {
         assertEq(deal.allowToken(address(notEscrowToken)), true);
-        
+
         _stake(staker1);
         address tba = deal.getTokenBoundAccount(tokenId);
-        notEscrowToken.transfer(address(tba), amount);
-        assertEq(notEscrowToken.balanceOf(tba), amount);
+        notEscrowToken.transfer(address(tba), 100);
+        assertEq(notEscrowToken.balanceOf(tba), 100);
         assertEq(notEscrowToken.balanceOf(sponsor), 0);
 
         AccountV3TBD account = AccountV3TBD(payable(tba));
         bytes memory erc20TransferCall =
-            abi.encodeWithSignature("transfer(address,uint256)", sponsor, amount);
+            abi.encodeWithSignature("transfer(address,uint256)", sponsor, 100);
         vm.prank(staker1);
         account.execute(payable(address(notEscrowToken)), 0, erc20TransferCall, 0);
         assertEq(notEscrowToken.balanceOf(tba), 0);
-        assertEq(notEscrowToken.balanceOf(sponsor), amount);
+        assertEq(notEscrowToken.balanceOf(sponsor), 100);
     }
 
 }
