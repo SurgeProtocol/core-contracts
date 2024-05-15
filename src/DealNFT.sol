@@ -286,18 +286,17 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         uint256 balance = escrowToken.balanceOf(tokenBoundAccount);
         require(balance >= amount, "insufficient balance");
 
-        if(state() <= State.Active){
+        if(state() == State.Active){
             totalStaked -= stakedAmount[tokenId];
             stakedAmount[tokenId] = 0;
+
+            uint256 fee = amount.mulDiv(unstakingFee, 1e6);
+            escrowToken.safeTransferFrom(tokenBoundAccount, msg.sender, amount - fee);
+            escrowToken.safeTransferFrom(tokenBoundAccount, sponsor, fee.ceilDiv(2));
+            escrowToken.safeTransferFrom(tokenBoundAccount, treasury, fee / 2);
+        } else {
+            escrowToken.safeTransferFrom(tokenBoundAccount, msg.sender, balance);
         }
-
-        uint256 fee = amount.mulDiv(unstakingFee, 1e6, Math.Rounding.Up);
-        escrowToken.safeTransferFrom(tokenBoundAccount, msg.sender, amount - fee);
-
-        uint256 halfUp = fee.mulDiv(1, 2, Math.Rounding.Up);
-        uint256 halfDown = fee.mulDiv(1, 2, Math.Rounding.Down);
-        escrowToken.safeTransferFrom(tokenBoundAccount, sponsor, halfUp);
-        escrowToken.safeTransferFrom(tokenBoundAccount, treasury, halfDown);
 
         emit Unstake(msg.sender, tokenBoundAccount, tokenId, amount);
     }
