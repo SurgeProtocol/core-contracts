@@ -5,6 +5,7 @@ import {ERC721} from "openzeppelin/token/ERC721/ERC721.sol";
 import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import {Strings} from "openzeppelin/utils/Strings.sol";
+import {Math} from "openzeppelin/utils/math/Math.sol";
 import {ReentrancyGuard} from "openzeppelin/security/ReentrancyGuard.sol";
 import {IERC6551Registry} from "erc6551/interfaces/IERC6551Registry.sol";
 import {AccountV3TBD} from "./AccountV3TBD.sol";
@@ -16,13 +17,14 @@ import {IDealNFT} from "./interfaces/IDealNFT.sol";
  * @notice Contract for managing NFT-based deals
  */
 contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
+    using Math for uint256;
     using Strings for address;
     using Strings for uint256;
     using SafeERC20 for IERC20;
-    
+
     // Events
     event Deal(address indexed sponsor, string name, string symbol);
-    event Setup(address sponsor, address escrowToken, uint256 closingDelay, string web, string twitter, string image);
+    event Setup(address sponsor, address escrowToken, uint256 closingDelay, uint256 unstakingFee, string web, string twitter, string image);
     event Activate(address indexed sponsor);
     event Configure(address indexed sponsor, string description, uint256 closingTime, uint256 dealMinimum, uint256 dealMaximum);
     event Transferrable(address indexed sponsor, bool transferrable);
@@ -35,7 +37,8 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     // Enum for deal states
     enum State { Setup, Active, Claiming, Closed, Canceled }
 
-    uint256 public constant closingPeriod = 1 weeks;
+    uint256 public constant CLOSING_PERIOD = 1 weeks;
+    uint256 public constant CLAIMING_FEE = 30000; // 3% 1e6
 
     // Private state variables
     uint256 private _tokenId;
@@ -47,10 +50,12 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     AccountV3TBD private immutable _implementation;
     string private _base;
     address public immutable sponsor;
+    address public immutable treasury;
 
     // Setup parameters
     IERC20 public escrowToken;
     uint256 public closingDelay;
+    uint256 public unstakingFee;
     string public web;
     string public twitter;
     string public image;
@@ -84,6 +89,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         address registry_,
         address implementation_,
         address sponsor_,
+        address treasury_,
         string memory name_,
         string memory symbol_,
         string memory baseURI_
@@ -91,6 +97,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         require(registry_ != address(0), "registry cannot be zero");
         require(implementation_ != address(0), "implementation cannot be zero");
         require(sponsor_ != address(0), "sponsor cannot be zero");
+        require(treasury_ != address(0), "treasury cannot be zero");
         require(bytes(name_).length > 0, "name cannot be empty");
         require(bytes(symbol_).length > 0, "symbol cannot be empty");
         require(bytes(baseURI_).length > 0, "baseURI cannot be empty");
@@ -99,7 +106,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         _implementation = AccountV3TBD(payable(implementation_));
 
         sponsor = sponsor_;
-        closingTime = type(uint256).max;
+        treasury = treasury_;
 
         _base = string(abi.encodePacked(
             baseURI_,
@@ -142,6 +149,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     function setup(
         address escrowToken_,
         uint256 closingDelay_,
+        uint256 unstakingFee_,
         string memory web_,
         string memory twitter_,
         string memory image_
@@ -150,11 +158,12 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
 
         escrowToken = IERC20(escrowToken_);
         closingDelay = closingDelay_;
+        unstakingFee = unstakingFee_;
         web = web_;
         twitter = twitter_;
         image = image_;
 
-        emit Setup(sponsor, address(escrowToken), closingDelay, web, twitter, image);
+        emit Setup(sponsor, address(escrowToken), closingDelay, unstakingFee, web, twitter, image);
     }
 
     /**
@@ -164,6 +173,8 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     function activate() external nonReentrant onlySponsor {
         require(address(escrowToken) != address(0), "sponsor cannot be zero");
         require(closingDelay > 0, "closing delay cannot be zero");
+        require(closingDelay < 52 weeks, "closing delay too big");
+        require(unstakingFee <= 100000, "cannot be bigger than 10%");
         require(bytes(web).length > 0, "web cannot be empty");
         require(bytes(twitter).length > 0, "twitter cannot be empty");
         require(bytes(image).length > 0, "image cannot be empty");
@@ -187,6 +198,8 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         uint256 dealMaximum_
     ) external nonReentrant onlySponsor {
         require(closingTime_ > block.timestamp + closingDelay, "invalid closing time");
+        require(closingTime_ < block.timestamp + 52 weeks, "invalid closing time");
+
         require(dealMinimum_ <= dealMaximum_, "wrong deal range");
         require(state() < State.Closed, "cannot configure anymore");
 
@@ -273,14 +286,19 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         uint256 balance = escrowToken.balanceOf(tokenBoundAccount);
         require(balance >= amount, "insufficient balance");
 
-        if(state() <= State.Active){
+        if(state() == State.Active){
             totalStaked -= stakedAmount[tokenId];
             stakedAmount[tokenId] = 0;
+
+            uint256 fee = amount.mulDiv(unstakingFee, 1e6);
+            escrowToken.safeTransferFrom(tokenBoundAccount, msg.sender, amount - fee);
+            escrowToken.safeTransferFrom(tokenBoundAccount, sponsor, fee.ceilDiv(2));
+            escrowToken.safeTransferFrom(tokenBoundAccount, treasury, fee / 2);
+        } else {
+            escrowToken.safeTransferFrom(tokenBoundAccount, msg.sender, balance);
         }
 
-        escrowToken.safeTransferFrom(tokenBoundAccount, msg.sender, balance);
-
-        emit Unstake(msg.sender, tokenBoundAccount, tokenId, balance);
+        emit Unstake(msg.sender, tokenBoundAccount, tokenId, amount);
     }
 
     /**
@@ -316,7 +334,11 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
             totalClaimed += amount;
             // TODO: hook transfers rewards to TBA
 
-            escrowToken.safeTransferFrom(getTokenBoundAccount(tokenId), sponsor, amount);
+            address tokenBoundAccount = getTokenBoundAccount(tokenId);
+            uint256 fee = amount.mulDiv(CLAIMING_FEE, 1e6);
+
+            escrowToken.safeTransferFrom(tokenBoundAccount, sponsor, amount - fee);
+            escrowToken.safeTransferFrom(tokenBoundAccount, treasury, fee);
 
             emit Claim(sponsor, ownerOf(tokenId), tokenId, amount);
         }
@@ -387,14 +409,14 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @notice Check if the current time is before closing time
      */
     function _beforeClose() private view returns (bool) {
-        return block.timestamp < closingTime;
+        return closingTime == 0 || block.timestamp <= closingTime;
     }
 
     /**
      * @notice Check if the current time is after closing time
      */
     function _afterClosed() private view returns (bool) {
-        return block.timestamp > (closingTime + closingPeriod);
+        return closingTime > 0 && block.timestamp > (closingTime + CLOSING_PERIOD);
     }
 
     /**
@@ -407,7 +429,6 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         require(approvalOf[to] >= amount, "insufficient approval");
 
         approvalOf[to] -= amount;
-        approvalOf[from] += amount;
 
         super._transfer(from, to, tokenId);
     }

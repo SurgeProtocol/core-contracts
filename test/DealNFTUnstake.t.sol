@@ -18,17 +18,27 @@ contract DealNFTUnstakeTest is Test, DealSetup {
     }
 
     function test_Unstake() public {
-        _stake(staker1);
-        _stake(staker2);
-        assertEq(deal.totalStaked(), amount * 2);
+        vm.prank(staker1);
+        escrowToken.transfer(vm.addr(999), 20);
+
+        vm.prank(staker1);
+        escrowToken.approve(address(deal), 999980);
+
+        vm.prank(staker1);
+        deal.stake(999980);
+
+        assertEq(deal.totalStaked(), 999980);
         assertEq(uint256(deal.state()), uint256(DealNFT.State.Active));
 
         vm.prank(staker1);
         deal.unstake(0);
-        assertEq(deal.totalStaked(), amount);
-        assertEq(deal.stakedAmount(tokenId), 0);
+
+        assertEq(deal.totalStaked(), 0);
+        assertEq(deal.stakedAmount(0), 0);
         assertEq(escrowToken.balanceOf(deal.getTokenBoundAccount(tokenId)), 0);
-        assertEq(escrowToken.balanceOf(staker1), amount);
+        assertEq(escrowToken.balanceOf(staker1), 949981);
+        assertEq(escrowToken.balanceOf(sponsor), 25000);
+        assertEq(escrowToken.balanceOf(treasury), 24999);
     }
 
     function test_UnstakeAfterClosed() public {

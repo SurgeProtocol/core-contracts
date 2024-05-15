@@ -17,17 +17,20 @@ contract DealSetup is Test {
     IERC20 public escrowToken;
 
     uint256 tokenId = 0;
-    uint256 amount = 10;
+    uint256 amount = 1000000;
     address sponsor;
+    address treasury;
     address staker1;
     address staker2;
 
     function _init() internal {
         sponsor = vm.addr(1);
-        staker1 = vm.addr(2);
-        staker2 = vm.addr(3);
+        treasury = vm.addr(2);
 
-        escrowToken = new ERC20PresetFixedSupply("escrow", "escrow", 100, address(this));
+        staker1 = vm.addr(3);
+        staker2 = vm.addr(4);
+
+        escrowToken = new ERC20PresetFixedSupply("escrow", "escrow", 2000000, address(this));
         escrowToken.transfer(address(staker1), amount);
         escrowToken.transfer(address(staker2), amount);
 
@@ -46,6 +49,7 @@ contract DealSetup is Test {
             address(registry),
             payable(address(implementation)),
             sponsor,
+            treasury,
             "SurgeDealTEST",
             "SRGTEST",
             "https://test.com"
@@ -59,12 +63,12 @@ contract DealSetup is Test {
 
     function _setup() internal {
         vm.prank(sponsor);
-        deal.setup(address(escrowToken), 30 minutes, "https://test1.com", "https://test2.com", "https://test3.com");
+        deal.setup(address(escrowToken), 30 minutes, 50000, "https://test1.com", "https://test2.com", "https://test3.com");
     }
 
     function _configure() internal {
         vm.prank(sponsor);
-        deal.configure("desc", block.timestamp + 2 weeks, 0, 1000);
+        deal.configure("desc", block.timestamp + 2 weeks, 0, 2000000);
     }
 
     function _activate() internal {

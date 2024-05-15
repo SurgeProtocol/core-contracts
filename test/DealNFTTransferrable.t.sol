@@ -31,10 +31,10 @@ contract DealNFTTransferTest is Test, DealSetup {
         deal.transferFrom(staker1, staker2, tokenId);
         assertEq(deal.ownerOf(tokenId), staker2);
 
-        assertEq(escrowToken.balanceOf(staker2), amount);
+        assertEq(escrowToken.balanceOf(staker2), 1000000);
         vm.prank(staker2);
         deal.unstake(tokenId);
-        assertEq(escrowToken.balanceOf(staker2), amount*2);
+        assertEq(escrowToken.balanceOf(staker2), 1950000);
     }
 
     function test_RevertWhen_TransferNFT_toNotApproved() public {
