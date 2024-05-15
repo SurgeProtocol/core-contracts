@@ -402,6 +402,13 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      */
     function _transfer(address from, address to, uint256 tokenId) internal override {
         require(transferrable, "not transferrable");
+
+        uint256 amount = stakedAmount[tokenId];
+        require(approvalOf[to] >= amount, "insufficient approval");
+
+        approvalOf[to] -= amount;
+        approvalOf[from] += amount;
+
         super._transfer(from, to, tokenId);
     }
 
