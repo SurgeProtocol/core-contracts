@@ -81,6 +81,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @param registry_ The address of the registry contract
      * @param implementation_ The address of the implementation contract
      * @param sponsor_ The address of the sponsor of the deal
+     * @param treasury_ The address of the treasury of the deal
      * @param name_ The name of the NFT
      * @param symbol_ The symbol of the NFT
      * @param baseURI_ The base URI for the NFTs
@@ -142,6 +143,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @notice Setup the deal
      * @param escrowToken_ The address of the escrow token
      * @param closingDelay_ The delay before closing the deal
+     * @param unstakingFee_ The fee for unstaking tokens
      * @param web_ The website associated with the deal
      * @param twitter_ The Twitter account associated with the deal
      * @param image_ The image associated with the deal
