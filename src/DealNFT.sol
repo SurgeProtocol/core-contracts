@@ -220,6 +220,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @param transferrable_ Boolean indicating if NFTs are transferrable
      */
     function setTransferrable(bool transferrable_) external nonReentrant onlySponsor {
+        require(state() != State.Canceled, "cannot be changed anymore");
         require(!_afterClosed(), "cannot be changed anymore");
 
         transferrable = transferrable_;
