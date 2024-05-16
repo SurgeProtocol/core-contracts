@@ -280,7 +280,8 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         address tokenBoundAccount = getTokenBoundAccount(tokenId);
 
         if(state() == State.Active){
-            totalStaked -= stakedAmount[tokenId];
+            totalStaked -= amount;
+            approvalOf[msg.sender] += amount;
             stakedAmount[tokenId] = 0;
 
             uint256 fee = amount.mulDiv(unstakingFee, 1e6);
@@ -423,6 +424,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         require(approvalOf[to] >= amount, "insufficient approval");
 
         approvalOf[to] -= amount;
+        approvalOf[from] += amount;
 
         super._transfer(from, to, tokenId);
     }
