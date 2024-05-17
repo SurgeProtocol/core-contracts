@@ -76,6 +76,8 @@ contract DealNFTStakeTest is Test, DealSetup {
 
     function test_RevertWhen_NotApproved() public {
         _activate();
+        vm.prank(sponsor);
+        deal.setWhitelists(true, true);
 
         vm.expectRevert("insufficient approval");
         vm.prank(staker1);

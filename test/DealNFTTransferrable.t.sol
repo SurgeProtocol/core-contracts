@@ -41,6 +41,9 @@ contract DealNFTTransferTest is Test, DealSetup {
         vm.prank(sponsor);
         deal.setTransferrable(true);
 
+        vm.prank(sponsor);
+        deal.setWhitelists(true, true);
+
         _stake(staker1);
 
         vm.prank(sponsor);

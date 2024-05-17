@@ -78,6 +78,8 @@ contract DealSetup is Test {
 
     function _stakerApprovals() internal {
         vm.prank(sponsor);
+        deal.setWhitelists(true, false);
+        vm.prank(sponsor);
         deal.approveStaker(staker1, amount);
         vm.prank(sponsor);
         deal.approveStaker(staker2, amount);
