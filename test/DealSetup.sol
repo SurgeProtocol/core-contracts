@@ -54,6 +54,13 @@ contract DealSetup is Test {
             "SRGTEST",
             "https://test.com"
         );
+
+        vm.prank(staker1);
+        escrowToken.approve(address(deal), amount);
+
+        vm.prank(staker2);
+        escrowToken.approve(address(deal), amount);
+
     }
 
     function _stake(address staker) internal {
@@ -68,25 +75,11 @@ contract DealSetup is Test {
 
     function _configure() internal {
         vm.prank(sponsor);
-        deal.configure("desc", block.timestamp + 2 weeks, 0, 2000000);
+        deal.configure("desc", block.timestamp + 2 weeks, 0, 2000000, address(0));
     }
 
     function _activate() internal {
         vm.prank(sponsor);
         deal.activate();
-    }
-
-    function _stakerApprovals() internal {
-        vm.prank(sponsor);
-        deal.approveStaker(staker1, amount);
-        vm.prank(sponsor);
-        deal.approveStaker(staker2, amount);
-    }
-
-    function _tokenApprovals() internal {
-        vm.prank(staker1);
-        escrowToken.approve(address(deal), amount);
-        vm.prank(staker2);
-        escrowToken.approve(address(deal), amount);
     }
 }

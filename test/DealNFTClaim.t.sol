@@ -8,10 +8,6 @@ import {DealSetup} from "./DealSetup.sol";
 contract DealNFTClaimTest is Test, DealSetup {
     function setUp() public {
         _init();
-
-        _stakerApprovals();
-        _tokenApprovals();
-
         _setup();
         _configure();
         _activate();
@@ -19,7 +15,7 @@ contract DealNFTClaimTest is Test, DealSetup {
 
     function test_Claim() public {
         vm.prank(sponsor);
-        deal.configure("desc", block.timestamp + 2 weeks, 500000, 1500000);
+        deal.configure("desc", block.timestamp + 2 weeks, 500000, 1500000, address(0));
 
         _stake(staker1);
         _stake(staker2);
@@ -100,7 +96,7 @@ contract DealNFTClaimTest is Test, DealSetup {
 
     function test_RevertWhen_ClaimMinimumNotReached() public {
         vm.prank(sponsor);
-        deal.configure("lorem ipsum", block.timestamp + 2 weeks, 2500000, 3000000);
+        deal.configure("lorem ipsum", block.timestamp + 2 weeks, 2500000, 3000000, address(0));
         _stake(staker1);
         _stake(staker2);
         skip(15 days);
