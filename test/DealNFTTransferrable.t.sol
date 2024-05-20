@@ -8,10 +8,6 @@ import {DealSetup} from "./DealSetup.sol";
 contract DealNFTTransferTest is Test, DealSetup {
     function setUp() public {
         _init();
-
-        _stakerApprovals();
-        _tokenApprovals();
-
         _setup();
         _configure();
         _activate();
@@ -44,10 +40,13 @@ contract DealNFTTransferTest is Test, DealSetup {
         vm.prank(sponsor);
         deal.setWhitelists(true, true);
 
-        _stake(staker1);
+        vm.prank(sponsor);
+        deal.approveStaker(staker1, amount);
 
         vm.prank(sponsor);
         deal.approveStaker(staker2, amount-1);
+
+        _stake(staker1);
 
         vm.expectRevert("insufficient approval");
         vm.prank(staker1);

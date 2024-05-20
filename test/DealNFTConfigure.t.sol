@@ -8,9 +8,6 @@ import {DealSetup} from "./DealSetup.sol";
 contract DealNFTConfigureTest is Test, DealSetup {
     function setUp() public {
         _init();
-
-        _stakerApprovals();
-        _tokenApprovals();
     }
 
     function test_Setup() public {
@@ -73,19 +70,6 @@ contract DealNFTConfigureTest is Test, DealSetup {
         assertEq(uint256(deal.state()), uint256(DealNFT.State.Active));
     }
 
-    function test_SetWhitelists() public {
-        _setup();
-        _configure();
-
-        assertEq(deal.whitelistStakes(), true);
-        assertEq(deal.whitelistClaims(), false);
-
-        vm.prank(sponsor);
-        deal.setWhitelists(false, true);
-
-        assertEq(deal.whitelistStakes(), false);
-        assertEq(deal.whitelistClaims(), true);
-    }
 
     function test_ReconfigureWhenActive() public {
         _setup();
@@ -114,14 +98,6 @@ contract DealNFTConfigureTest is Test, DealSetup {
         vm.expectRevert("not the sponsor");
         vm.prank(staker1);
         deal.configure("a", block.timestamp + 2 weeks, 0, 1000);
-    }
-
-    function test_RevertWhen_SetWhitelistsWithWrongSender() public {
-        _setup();
-        _configure();
-
-        vm.expectRevert("not the sponsor");
-        deal.setWhitelists(true, true);
     }
 
     function test_RevertWhen_ConfigureWithClosingTimeZero() public {

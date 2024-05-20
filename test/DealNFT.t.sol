@@ -19,15 +19,11 @@ contract DealNFTTest is Test, DealSetup {
 
     function setUp() public {
         _init();
-
-        notEscrowToken = new ERC20PresetFixedSupply("not escrow", "not escrow", 100, address(this));
-
-        _stakerApprovals();
-        _tokenApprovals();
-
         _setup();
         _configure();
         _activate();
+
+        notEscrowToken = new ERC20PresetFixedSupply("not escrow", "not escrow", 100, address(this));
     }
 
     function test_Stake() public {

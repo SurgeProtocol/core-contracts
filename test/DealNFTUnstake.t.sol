@@ -8,10 +8,6 @@ import {DealSetup} from "./DealSetup.sol";
 contract DealNFTUnstakeTest is Test, DealSetup {
     function setUp() public {
         _init();
-
-        _stakerApprovals();
-        _tokenApprovals();
-
         _setup();
         _configure();
         _activate();

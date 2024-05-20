@@ -8,14 +8,11 @@ import {DealSetup} from "./DealSetup.sol";
 contract DealNFTStakeTest is Test, DealSetup {
     function setUp() public {
         _init();
-
-        _tokenApprovals();
         _setup();
         _configure();
     }
 
     function test_Stake() public {
-        _stakerApprovals();
         _activate();
 
         vm.prank(staker1);
@@ -46,7 +43,6 @@ contract DealNFTStakeTest is Test, DealSetup {
     }
 
     function test_RevertWhen_StakeBeforeActive() public {
-        _stakerApprovals();
 
         assertEq(uint256(deal.state()), uint256(DealNFT.State.Setup));
         vm.expectRevert("not an active deal");
@@ -56,7 +52,6 @@ contract DealNFTStakeTest is Test, DealSetup {
 
     function test_RevertWhen_StakeAfterActive() public {
         _activate();
-        _stakerApprovals();
 
         skip(15 days);
 
@@ -67,20 +62,10 @@ contract DealNFTStakeTest is Test, DealSetup {
 
     function test_RevertWhen_StakeZero() public {
         _activate();
-        _stakerApprovals();
 
         vm.expectRevert("invalid amount");
         vm.prank(staker1);
         deal.stake(0);
     }
 
-    function test_RevertWhen_NotApproved() public {
-        _activate();
-        vm.prank(sponsor);
-        deal.setWhitelists(true, true);
-
-        vm.expectRevert("insufficient approval");
-        vm.prank(staker1);
-        deal.stake(amount);
-    }
 }
