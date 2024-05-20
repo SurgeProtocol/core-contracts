@@ -26,10 +26,11 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     event Deal(address indexed sponsor, string name, string symbol);
     event Setup(address sponsor, address escrowToken, uint256 closingDelay, uint256 unstakingFee, string web, string twitter, string image);
     event Activate(address indexed sponsor);
-    event Configure(address indexed sponsor, string description, uint256 closingTime, uint256 dealMinimum, uint256 dealMaximum);
+    event Configure(address indexed sponsor, string description, uint256 closingTime, uint256 dealMinimum, uint256 dealMaximum, address arbitrator);
     event Transferrable(address indexed sponsor, bool transferrable);
     event StakerApproval(address indexed sponsor, address staker, uint256 amount);
     event BuyerApproval(address indexed sponsor, address staker, bool qualified);
+    event ClaimApproved(address indexed sponsor, address arbitrator);
     event WhitelistsSetup(bool whitelistStakes, bool whitelistClaims);
     event Cancel(address indexed sponsor);
     event Claim(address indexed sponsor, address indexed staker, uint256 tokenId, uint256 amount);
@@ -69,7 +70,10 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     uint256 public closingTime;
     uint256 public dealMinimum;
     uint256 public dealMaximum;
+    address public arbitrator;
+
     bool public transferrable;
+    bool public claimApproved;
 
     // Deal statistics
     uint256 public totalClaimed;
@@ -139,6 +143,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @notice modifier to check claim requirements
      */
     modifier canClaim() {
+        require(arbitrator == address(0) || claimApproved, "claim not approved");
         require(_claimId < _tokenId, "token id out of bounds");
         require(state() == State.Claiming, "not in closing week");
         require(totalStaked() >= dealMinimum, "minimum stake not reached");
@@ -203,7 +208,8 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         string memory description_,
         uint256 closingTime_,
         uint256 dealMinimum_,
-        uint256 dealMaximum_
+        uint256 dealMaximum_,
+        address arbitrator_
     ) external nonReentrant onlySponsor {
         require(closingTime_ > block.timestamp + closingDelay, "invalid closing time");
         require(closingTime_ < block.timestamp + 52 weeks, "invalid closing time");
@@ -219,8 +225,9 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         closingTime = closingTime_;
         dealMinimum = dealMinimum_;
         dealMaximum = dealMaximum_;
+        arbitrator = arbitrator_;
 
-        emit Configure(sponsor, description_, closingTime_, dealMinimum_, dealMaximum_);
+        emit Configure(sponsor, description, closingTime, dealMinimum, dealMaximum, arbitrator);
     }
 
     /**
@@ -253,6 +260,15 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     function approveBuyer(address staker_, bool qualified_) external nonReentrant onlySponsor {
         isQualified[staker_] = qualified_;
         emit BuyerApproval(sponsor, staker_, qualified_);
+    }
+
+    /**
+     * @notice Approve the claim of the deal
+     */
+    function approveClaim() external nonReentrant {
+        require(msg.sender == arbitrator, "not the arbitrator");
+        claimApproved = true;
+        emit ClaimApproved(sponsor, arbitrator);
     }
 
     /**

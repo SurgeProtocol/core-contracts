@@ -86,7 +86,7 @@ contract DealNFTConfigureTest is Test, DealSetup {
         _activate();
 
         vm.prank(sponsor);
-        deal.configure("a", block.timestamp + 2 weeks, 1, 1000);
+        deal.configure("a", block.timestamp + 2 weeks, 1, 1000, address(0));
         skip(18 days);
 
         assertEq(uint256(deal.state()), uint256(DealNFT.State.Claiming));
@@ -97,25 +97,25 @@ contract DealNFTConfigureTest is Test, DealSetup {
     function test_RevertWhen_ConfigureWithWrongSender() public {
         vm.expectRevert("not the sponsor");
         vm.prank(staker1);
-        deal.configure("a", block.timestamp + 2 weeks, 0, 1000);
+        deal.configure("a", block.timestamp + 2 weeks, 0, 1000, address(0));
     }
 
     function test_RevertWhen_ConfigureWithClosingTimeZero() public {
         vm.expectRevert("invalid closing time");
         vm.prank(sponsor);
-        deal.configure("a", 0, 0, 1000);
+        deal.configure("a", 0, 0, 1000, address(0));
     }
 
     function test_RevertWhen_ConfigureWithClosingTimeMinimum() public {
         vm.expectRevert("invalid closing time");
         vm.prank(sponsor);
-        deal.configure("a", block.timestamp, 0, 1000);
+        deal.configure("a", block.timestamp, 0, 1000, address(0));
     }
 
     function test_RevertWhen_ConfigureWithWrongRange() public {
         vm.expectRevert("wrong deal range");
         vm.prank(sponsor);
-        deal.configure("a", block.timestamp + 2 weeks, 1000, 999);
+        deal.configure("a", block.timestamp + 2 weeks, 1000, 999, address(0));
     }
 
     function test_RevertWhen_ConfigureWhenClosed() public {

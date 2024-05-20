@@ -75,7 +75,7 @@ contract DealSetup is Test {
 
     function _configure() internal {
         vm.prank(sponsor);
-        deal.configure("desc", block.timestamp + 2 weeks, 0, 2000000);
+        deal.configure("desc", block.timestamp + 2 weeks, 0, 2000000, address(0));
     }
 
     function _activate() internal {
