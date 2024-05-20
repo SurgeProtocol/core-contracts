@@ -41,70 +41,6 @@ contract DealNFTUnstakeTest is Test, DealSetup {
         assertEq(escrowToken.balanceOf(treasury), 24999);
     }
 
-    // TODO: Move to recover()
-    // function test_UnstakeAfterClosed() public {
-    //     _stake(staker1);
-    //     _stake(staker2);
-    //     assertEq(deal.totalStaked(), amount * 2);
-
-    //     vm.prank(staker1);
-    //     deal.unstake(0);
-
-    //     skip(22 days);
-    //     assertEq(deal.totalStaked(), amount);
-    //     assertEq(uint(deal.state()), uint256(DealNFT.State.Closed));
-
-    //     vm.prank(staker2);
-    //     deal.unstake(1);
-    //     assertEq(deal.totalStaked(), amount);
-    //     assertEq(deal.stakedAmount(1), amount);
-    // }
-
-    function test_RevertWhen_UnstakeAfterClosed() public {
-        _stake(staker1);
-        _stake(staker2);
-        assertEq(deal.totalStaked(), amount * 2);
-
-        vm.prank(staker1);
-        deal.unstake(0);
-
-        skip(22 days);
-        assertEq(deal.totalStaked(), amount);
-        assertEq(uint(deal.state()), uint256(DealNFT.State.Closed));
-
-        vm.expectRevert("cannot unstake after claiming/closed/canceled");
-
-        vm.prank(staker2);
-        deal.unstake(1);
-    }
-
-    // TODO: Move to recover()
-    // function test_UnstakeAfterCanceled() public {
-    //     _stake(staker1);
-    //     assertEq(deal.totalStaked(), amount);
-
-    //     vm.prank(sponsor);
-    //     deal.cancel();
-    //     assertEq(uint(deal.state()), uint256(DealNFT.State.Canceled));
-
-    //     vm.prank(staker1);
-    //     deal.unstake(0);
-    //     assertEq(deal.totalStaked(), amount);
-    //     assertEq(deal.stakedAmount(0), amount);
-    // }
-
-    function test_RevertWhen_UnstakeAfterCanceled() public {
-        _stake(staker1);
-        assertEq(deal.totalStaked(), amount);
-
-        vm.prank(sponsor);
-        deal.cancel();
-        assertEq(uint(deal.state()), uint256(DealNFT.State.Canceled));
-
-        vm.expectRevert("cannot unstake after claiming/closed/canceled");
-        vm.prank(staker1);
-        deal.unstake(0);
-    }
 
     function test_RevertWhen_UnstakeWithWrongOwner() public {
         _stake(staker1);
@@ -122,5 +58,36 @@ contract DealNFTUnstakeTest is Test, DealSetup {
         vm.expectRevert("cannot unstake after claiming/closed/canceled");
         vm.prank(staker1);
         deal.unstake(0);
+    }
+
+    function test_RevertWhen_UnstakeAfterCanceled() public {
+        _stake(staker1);
+        assertEq(deal.totalStaked(), amount);
+
+        vm.prank(sponsor);
+        deal.cancel();
+        assertEq(uint(deal.state()), uint256(DealNFT.State.Canceled));
+
+        vm.expectRevert("cannot unstake after claiming/closed/canceled");
+        vm.prank(staker1);
+        deal.unstake(0);
+    }
+
+    function test_RevertWhen_UnstakeAfterClosed() public {
+        _stake(staker1);
+        _stake(staker2);
+        assertEq(deal.totalStaked(), amount * 2);
+
+        vm.prank(staker1);
+        deal.unstake(0);
+
+        skip(22 days);
+        assertEq(deal.totalStaked(), amount);
+        assertEq(uint(deal.state()), uint256(DealNFT.State.Closed));
+
+        vm.expectRevert("cannot unstake after claiming/closed/canceled");
+
+        vm.prank(staker2);
+        deal.unstake(1);
     }
 }
