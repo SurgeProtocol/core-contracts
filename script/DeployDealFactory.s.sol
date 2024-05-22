@@ -6,9 +6,9 @@ import "forge-std/Script.sol";
 import "@openzeppelin/contracts/utils/Create2.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
-import "../src/DealNFT.sol";
+import "../src/DealFactory.sol";
 
-contract DeployDealNFT is Script {
+contract DeployDealFactory is Script {
     function run() external {
         bytes32 salt = 0x6551655165516551655165516551655165516551655165516551655165516551;
         address factory = 0x4e59b44847b379578588920cA78FbF26c0B4956C;
@@ -19,23 +19,17 @@ contract DeployDealNFT is Script {
         // TODO: change to a multisig
         address treasury = 0x6049176a7507cC93bafaaC786f4Aa5Fb37707207;
 
-        address sponsor = 0x7Adc86401f246B87177CEbBEC189dE075b75Af3A;
-        string memory name = "Dragon Deal";
-        string memory symbol = "SRGTST";
         string memory baseURI = "https://api.surge.rip";
 
-        address deal = Create2.computeAddress(
+        address dealFactory = Create2.computeAddress(
             salt,
             keccak256(
                 abi.encodePacked(
-                    type(DealNFT).creationCode,
+                    type(DealFactory).creationCode,
                     abi.encode(
                         registry,
                         implementation,
-                        sponsor,
                         treasury,
-                        name,
-                        symbol,
                         baseURI
                     )
                 )
@@ -44,42 +38,33 @@ contract DeployDealNFT is Script {
         );
 
         // Deploy Deal
-        if (deal.code.length == 0) {
+        if (dealFactory.code.length == 0) {
             vm.startBroadcast();
-            new DealNFT{salt: salt}(
+            new DealFactory{salt: salt}(
                 registry,
                 implementation,
-                sponsor,
                 treasury,
-                name,
-                symbol,
                 baseURI
             );
             vm.stopBroadcast();
 
-            console.log("DealNFT:", deal, "(deployed)");
+            console.log("DealFactory:", dealFactory, "(deployed)");
         } else {
-            console.log("DealNFT:", deal, "(exists)");
+            console.log("DealNFT:", dealFactory, "(exists)");
         }
 
         console.log("\nVerification Commands:\n");
         console.log(
-            "DealNFT: forge verify-contract --num-of-optimizations 200 --chain-id",
+            "DealFactory: forge verify-contract --num-of-optimizations 200 --chain-id",
             block.chainid,
-            deal,
+            dealFactory,
             string.concat(
-                "src/DealNFT.sol:DealNFT --constructor-args $(cast abi-encode \"constructor(address,address,address,address,string,string,string)\" ",
+                "src/DealNFT.sol:DealNFT --constructor-args $(cast abi-encode \"constructor(address,address,address,string)\" ",
                 Strings.toHexString(registry),
                 " ",
                 Strings.toHexString(implementation),
                 " ",
-                Strings.toHexString(sponsor),
-                " ",
                 Strings.toHexString(treasury),
-                " ",
-                name,
-                " ",
-                symbol,
                 " ",
                 baseURI,
                 ")\n"
