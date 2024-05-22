@@ -14,15 +14,12 @@ contract DeployDealFactory is Script {
         address factory = 0x4e59b44847b379578588920cA78FbF26c0B4956C;
 
         address registry = 0x000000006551c19487814612e58FE06813775758;
-
         // TODO: change to a cross chain standard address
         address implementation = 0x83Bd10AE8E626EE9977Eaf222487fFCE60279c30;
-
         // TODO: change to a multisig
         address treasury = 0x6049176a7507cC93bafaaC786f4Aa5Fb37707207;
 
-        // TODO: change to tokens.surge.rip
-        string memory baseURI = "https://surgetokens.netlify.app";
+        string memory baseURI = "https://api.surge.rip";
 
         address dealFactory = Create2.computeAddress(
             salt,
