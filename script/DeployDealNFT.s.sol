@@ -17,8 +17,8 @@ contract DeployDealNFT is Script {
         address implementation = 0x83Bd10AE8E626EE9977Eaf222487fFCE60279c30;
         address sponsor = 0x7Adc86401f246B87177CEbBEC189dE075b75Af3A;
         address treasury = 0x6049176a7507cC93bafaaC786f4Aa5Fb37707207;
-        string memory name = "SurgeDealTEST";
-        string memory symbol = "SRGTEST";
+        string memory name = "Dragon Deal";
+        string memory symbol = "SRGTST";
         string memory baseURI = "https://surgetokens.netlify.app";
 
         address deal = Create2.computeAddress(
