@@ -12,12 +12,15 @@ contract DeployDealFactory is Script {
     function run() external {
         bytes32 salt = 0x6551655165516551655165516551655165516551655165516551655165516551;
         address factory = 0x4e59b44847b379578588920cA78FbF26c0B4956C;
-
         address registry = 0x000000006551c19487814612e58FE06813775758;
-        // TODO: change to a cross chain standard address
-        address implementation = 0x83Bd10AE8E626EE9977Eaf222487fFCE60279c30;
-        // TODO: change to a multisig
-        address treasury = 0x6049176a7507cC93bafaaC786f4Aa5Fb37707207;
+
+        // arbitrum
+        address implementation = 0x8A6bDD9B33D21D96112cc67B52C91719178Cc704;
+        address treasury = 0x837bb49403346a307C449Fe831cCA5C1992C57f5;
+
+        // base
+        // address implementation = 0x6AE9d37F3c4240c9288059B743652b67cE20FcDD;
+        // address treasury = 0x39110eEfD8542b3308817a27EbD3509386D37754;
 
         string memory baseURI = "https://api.surge.rip";
 

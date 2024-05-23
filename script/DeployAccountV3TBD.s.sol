@@ -14,8 +14,11 @@ contract DeployAccountV3TBD is Script {
         bytes32 salt = 0x6551655165516551655165516551655165516551655165516551655165516551;
         address factory = 0x4e59b44847b379578588920cA78FbF26c0B4956C;
 
-        // TODO: move to multisig
-        address tokenboundSafe = 0x7Adc86401f246B87177CEbBEC189dE075b75Af3A;
+        // arbitrum
+        // address tokenboundSafe = 0x837bb49403346a307C449Fe831cCA5C1992C57f5;
+
+        // base
+        address tokenboundSafe = 0x39110eEfD8542b3308817a27EbD3509386D37754;
 
         address erc4337EntryPoint = 0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789;
         address multicallForwarder = 0xcA1167915584462449EE5b4Ea51c37fE81eCDCCD;
