@@ -50,7 +50,7 @@ contract DeployDealFactory is Script {
 
             console.log("DealFactory:", dealFactory, "(deployed)");
         } else {
-            console.log("DealNFT:", dealFactory, "(exists)");
+            console.log("DealFactory:", dealFactory, "(exists)");
         }
 
         console.log("\nVerification Commands:\n");
@@ -59,7 +59,7 @@ contract DeployDealFactory is Script {
             block.chainid,
             dealFactory,
             string.concat(
-                "src/DealNFT.sol:DealNFT --constructor-args $(cast abi-encode \"constructor(address,address,address,string)\" ",
+                "src/DealFactory.sol:DealFactory --constructor-args $(cast abi-encode \"constructor(address,address,address,string)\" ",
                 Strings.toHexString(registry),
                 " ",
                 Strings.toHexString(implementation),
