@@ -24,8 +24,8 @@ contract DeployDealNFT is Script {
 
 
         address sponsor = 0x7Adc86401f246B87177CEbBEC189dE075b75Af3A;
-        string memory name = "Dragon Deal";
-        string memory symbol = "SRGTST";
+        string memory name = "Your Deal";
+        string memory symbol = "DRGN";
         string memory baseURI = "https://api.surge.rip";
 
         address deal = Create2.computeAddress(
