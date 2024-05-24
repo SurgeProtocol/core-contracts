@@ -41,7 +41,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     // Enum for deal states
     enum State { Setup, Active, Claiming, Closed, Canceled }
 
-    uint256 public constant CLOSING_PERIOD = 1 weeks;
+    uint256 public constant CLAIMING_PERIOD = 1 weeks;
     uint256 public constant CLAIMING_FEE = 30000; // 3% 1e6
 
     // Private state variables
@@ -482,7 +482,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @notice Check if the current time is after closing time
      */
     function _afterClosed() private view returns (bool) {
-        return closingTime > 0 && block.timestamp > (closingTime + CLOSING_PERIOD);
+        return closingTime > 0 && block.timestamp > (closingTime + CLAIMING_PERIOD);
     }
 
     /**
