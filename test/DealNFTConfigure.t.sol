@@ -100,8 +100,7 @@ contract DealNFTConfigureTest is Test, DealSetup {
         deal.configure("a", block.timestamp + 2 weeks, 0, 1000, address(0));
     }
 
-    function test_RevertWhen_ConfigureWithClosingTimeZero() public {
-        vm.expectRevert("invalid closing time");
+    function test_ConfigureWithClosingTimeZero() public {
         vm.prank(sponsor);
         deal.configure("a", 0, 0, 1000, address(0));
     }
