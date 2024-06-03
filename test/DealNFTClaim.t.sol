@@ -34,8 +34,8 @@ contract DealNFTClaimTest is Test, DealSetup {
 
         assertEq(deal.stakedAmount(0), amount);
         assertEq(deal.stakedAmount(1), amount);
-        assertEq(escrowToken.balanceOf(deal.getTokenBoundAccount(0)), 0);
-        assertEq(escrowToken.balanceOf(deal.getTokenBoundAccount(1)), 500000);
+        assertEq(escrowToken.balanceOf(address(deal.getTokenBoundAccount(0))), 0);
+        assertEq(escrowToken.balanceOf(address(deal.getTokenBoundAccount(1))), 500000);
         assertEq(escrowToken.balanceOf(sponsor), 1455000);
         assertEq(escrowToken.balanceOf(treasury), 45000);
         assertEq(deal.totalStaked(), 2000000);

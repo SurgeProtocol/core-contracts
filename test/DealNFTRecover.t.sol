@@ -51,13 +51,13 @@ contract DealNFTRecoverTest is Test, DealSetup {
         deal.cancel();
         assertEq(uint(deal.state()), uint256(DealNFT.State.Canceled));
         
-        assertEq(escrowToken.balanceOf(deal.getTokenBoundAccount(0)), amount);
+        assertEq(escrowToken.balanceOf(address(deal.getTokenBoundAccount(0))), amount);
         assertEq(escrowToken.balanceOf(staker1), 0);
 
         vm.prank(staker1);
         deal.recover(0);
 
-        assertEq(escrowToken.balanceOf(deal.getTokenBoundAccount(0)), 0);
+        assertEq(escrowToken.balanceOf(address(deal.getTokenBoundAccount(0))), 0);
         assertEq(escrowToken.balanceOf(staker1), amount);
     }
 
@@ -67,13 +67,13 @@ contract DealNFTRecoverTest is Test, DealSetup {
         skip(22 days);
         assertEq(uint(deal.state()), uint256(DealNFT.State.Closed));
         
-        assertEq(escrowToken.balanceOf(deal.getTokenBoundAccount(0)), amount);
+        assertEq(escrowToken.balanceOf(address(deal.getTokenBoundAccount(0))), amount);
         assertEq(escrowToken.balanceOf(staker1), 0);
 
         vm.prank(staker1);
         deal.recover(0);
 
-        assertEq(escrowToken.balanceOf(deal.getTokenBoundAccount(0)), 0);
+        assertEq(escrowToken.balanceOf(address(deal.getTokenBoundAccount(0))), 0);
         assertEq(escrowToken.balanceOf(staker1), amount);
     }
 }

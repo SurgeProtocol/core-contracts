@@ -31,7 +31,7 @@ contract DealNFTUnstakeTest is Test, DealSetup {
 
         assertEq(deal.totalStaked(), 0);
         assertEq(deal.stakedAmount(0), 0);
-        assertEq(escrowToken.balanceOf(deal.getTokenBoundAccount(tokenId)), 0);
+        assertEq(escrowToken.balanceOf(address(deal.getTokenBoundAccount(tokenId))), 0);
         assertEq(escrowToken.balanceOf(staker1), 949981);
         assertEq(escrowToken.balanceOf(sponsor), 25000);
         assertEq(escrowToken.balanceOf(treasury), 24999);
