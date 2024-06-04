@@ -211,8 +211,8 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         uint256 dealMaximum_,
         address arbitrator_
     ) external nonReentrant onlySponsor {
-        require(closingTime_ == 0 || closingTime_ > block.timestamp + closingDelay, "invalid closing time");
-        require(closingTime_ < block.timestamp + 52 weeks, "invalid closing time");
+        require(closingTime_ == 0 || closingTime_ >= block.timestamp + closingDelay, "invalid closing time");
+        require(closingTime_ <= block.timestamp + 52 weeks, "invalid closing time");
 
         require(dealMinimum_ <= dealMaximum_, "wrong deal range");
         require(state() < State.Closed, "cannot configure anymore");
