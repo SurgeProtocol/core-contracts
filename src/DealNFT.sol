@@ -42,7 +42,11 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     enum State { Setup, Active, Claiming, Closed, Canceled }
 
     uint256 public constant CLAIMING_PERIOD = 1 weeks;
-    uint256 public constant CLAIMING_FEE = 30000; // 3% 1e6
+    uint256 public constant CLAIMING_FEE = 3e4; // 3%
+    uint256 private constant MAX_CLOSING_RANGE = 52 weeks;
+    uint256 private constant MAX_FEE = 1e5;
+    uint256 private constant PRECISION = 1e6;
+    address private constant ADDRESS_ZERO = address(0);
 
     // Private state variables
     uint256 private _tokenId;
@@ -105,10 +109,10 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         string memory symbol_,
         string memory baseURI_
     ) ERC721(name_, symbol_) {
-        require(registry_ != address(0), "registry cannot be zero");
-        require(implementation_ != address(0), "implementation cannot be zero");
-        require(sponsor_ != address(0), "sponsor cannot be zero");
-        require(treasury_ != address(0), "treasury cannot be zero");
+        require(registry_ != ADDRESS_ZERO, "registry cannot be zero");
+        require(implementation_ != ADDRESS_ZERO, "implementation cannot be zero");
+        require(sponsor_ != ADDRESS_ZERO, "sponsor cannot be zero");
+        require(treasury_ != ADDRESS_ZERO, "treasury cannot be zero");
         require(bytes(name_).length > 0, "name cannot be empty");
         require(bytes(symbol_).length > 0, "symbol cannot be empty");
         require(bytes(baseURI_).length > 0, "baseURI cannot be empty");
@@ -143,7 +147,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @notice modifier to check claim requirements
      */
     modifier canClaim() {
-        require(arbitrator == address(0) || claimApproved, "claim not approved");
+        require(arbitrator == ADDRESS_ZERO || claimApproved, "claim not approved");
         require(_claimId < _tokenId, "token id out of bounds");
         require(state() == State.Claiming, "not in closing week");
         require(totalStaked() >= dealMinimum, "minimum stake not reached");
@@ -184,10 +188,10 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @dev requires all setup parameters to be set
      */
     function activate() external nonReentrant onlySponsor {
-        require(address(escrowToken) != address(0), "sponsor cannot be zero");
+        require(address(escrowToken) != ADDRESS_ZERO, "sponsor cannot be zero");
         require(closingDelay > 0, "closing delay cannot be zero");
-        require(closingDelay < 52 weeks, "closing delay too big");
-        require(unstakingFee <= 100000, "cannot be bigger than 10%");
+        require(closingDelay < MAX_CLOSING_RANGE, "closing delay too big");
+        require(unstakingFee <= MAX_FEE, "cannot be bigger than 10%");
         require(bytes(web).length > 0, "web cannot be empty");
         require(bytes(twitter).length > 0, "twitter cannot be empty");
         require(bytes(image).length > 0, "image cannot be empty");
@@ -212,7 +216,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         address arbitrator_
     ) external nonReentrant onlySponsor {
         require(closingTime_ == 0 || closingTime_ >= block.timestamp + closingDelay, "invalid closing time");
-        require(closingTime_ <= block.timestamp + 52 weeks, "invalid closing time");
+        require(closingTime_ <= block.timestamp + MAX_CLOSING_RANGE, "invalid closing time");
 
         require(dealMinimum_ <= dealMaximum_, "wrong deal range");
         require(state() < State.Closed, "cannot configure anymore");
@@ -327,7 +331,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         approvalOf[msg.sender] += amount;
         stakedAmount[tokenId] = 0;
 
-        uint256 fee = amount.mulDiv(unstakingFee, 1e6);
+        uint256 fee = amount.mulDiv(unstakingFee, PRECISION);
         tokenBoundAccount.send(msg.sender, amount - fee);
         tokenBoundAccount.send(sponsor, fee.ceilDiv(2));
         tokenBoundAccount.send(treasury, fee/2);
@@ -390,7 +394,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
             // TODO: hook transfers rewards to TBA
             
             AccountV3TBD tokenBoundAccount = getTokenBoundAccount(tokenId);
-            uint256 fee = amount.mulDiv(CLAIMING_FEE, 1e6);
+            uint256 fee = amount.mulDiv(CLAIMING_FEE, PRECISION);
 
             tokenBoundAccount.send(sponsor, amount - fee);
             tokenBoundAccount.send(treasury, fee);
