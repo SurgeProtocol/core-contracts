@@ -155,6 +155,19 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     }
 
     /**
+     * @notice Modifier to check the caller is the arbitrator
+     */
+    modifier onlyArbitrator() {
+        require(msg.sender == arbitrator, "not the arbitrator");
+        _;
+    }
+
+    modifier onlyTokenOwner(uint256 tokenId) {
+        require(msg.sender == ownerOf(tokenId), "not the nft owner");
+        _;
+    }
+
+    /**
      * @notice Setup the deal
      * @param escrowToken_ The address of the escrow token
      * @param closingDelay_ The delay before closing the deal
@@ -269,8 +282,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     /**
      * @notice Approve the claim of the deal
      */
-    function approveClaim() external nonReentrant {
-        require(msg.sender == arbitrator, "not the arbitrator");
+    function approveClaim() external nonReentrant onlyArbitrator {
         claimApproved = true;
         emit ClaimApproved(sponsor, arbitrator);
     }
@@ -321,8 +333,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @notice Unstake tokens from the deal
      * @param tokenId The ID of the token to unstake
      */
-    function unstake(uint256 tokenId) external nonReentrant {
-        require(msg.sender == ownerOf(tokenId), "not the nft owner");
+    function unstake(uint256 tokenId) external nonReentrant onlyTokenOwner(tokenId) { 
         require(state() <= State.Active, "cannot unstake after claiming/closed/canceled");
 
         uint256 amount = stakedAmount[tokenId];
@@ -343,8 +354,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @notice Recover tokens from the deal if the deal is canceled or closed
      * @param tokenId The ID of the token to recover
      */
-    function recover(uint256 tokenId) external nonReentrant {
-        require(msg.sender == ownerOf(tokenId), "not the nft owner");
+    function recover(uint256 tokenId) external nonReentrant onlyTokenOwner(tokenId) { 
         require(state() >= State.Closed, "cannot recover before closed/canceled");
 
         AccountV3TBD tokenBoundAccount = getTokenBoundAccount(tokenId);
