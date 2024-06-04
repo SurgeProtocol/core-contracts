@@ -123,14 +123,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         sponsor = sponsor_;
         treasury = treasury_;
 
-        _base = string(abi.encodePacked(
-            baseURI_,
-            "/chain/",
-            block.chainid.toString(),
-            "/deal/",
-            address(this).toHexString(),
-            "/token/"
-        ));
+        _base = string.concat(baseURI_, "/chain/", block.chainid.toString(), "/deal/", address(this).toHexString(), "/token/");
 
         emit Deal(sponsor, name_, symbol_);
     }
