@@ -28,13 +28,13 @@ contract DealNFTTest is Test, DealSetup {
 
     function test_Stake() public {
         vm.expectEmit(address(deal));
-        emit DealNFT.Stake(staker1, deal.getTokenBoundAccount(tokenId), tokenId, amount);
+        emit DealNFT.Stake(staker1, address(deal.getTokenBoundAccount(tokenId)), tokenId, amount);
 
         _stake(staker1);
 
         assertEq(deal.stakedAmount(tokenId), amount);
         assertEq(deal.totalStaked(), amount);
-        assertEq(escrowToken.balanceOf(deal.getTokenBoundAccount(tokenId)), amount);
+        assertEq(escrowToken.balanceOf(address(deal.getTokenBoundAccount(tokenId))), amount);
         assertEq(escrowToken.balanceOf(staker1), 0);
         assertEq(deal.ownerOf(tokenId), staker1);
         assertEq(deal.tokenURI(tokenId), string(abi.encodePacked(
@@ -50,14 +50,14 @@ contract DealNFTTest is Test, DealSetup {
         _stake(staker1);
 
         vm.expectEmit(address(deal));
-        emit DealNFT.Unstake(staker1, deal.getTokenBoundAccount(tokenId), tokenId, amount);
+        emit DealNFT.Unstake(staker1, address(deal.getTokenBoundAccount(tokenId)), tokenId, amount);
 
         vm.prank(staker1);
         deal.unstake(tokenId);
 
         assertEq(deal.stakedAmount(tokenId), 0);
         assertEq(escrowToken.balanceOf(staker1), 950000);
-        assertEq(escrowToken.balanceOf(deal.getTokenBoundAccount(tokenId)), 0);
+        assertEq(escrowToken.balanceOf(address(deal.getTokenBoundAccount(tokenId))), 0);
         assertEq(escrowToken.balanceOf(sponsor), 25000);
         assertEq(escrowToken.balanceOf(treasury), 25000);
         assertEq(deal.totalStaked(), 0);
@@ -79,7 +79,7 @@ contract DealNFTTest is Test, DealSetup {
         assertEq(deal.stakedAmount(tokenId), amount);
         assertEq(escrowToken.balanceOf(sponsor), 970000);
         assertEq(escrowToken.balanceOf(treasury), 30000);
-        assertEq(escrowToken.balanceOf(deal.getTokenBoundAccount(tokenId)), 0);
+        assertEq(escrowToken.balanceOf(address(deal.getTokenBoundAccount(tokenId))), 0);
         assertEq(deal.totalStaked(), amount);
         assertEq(deal.totalClaimed(), amount);
     }
@@ -88,17 +88,16 @@ contract DealNFTTest is Test, DealSetup {
         assertEq(deal.allowToken(address(notEscrowToken)), true);
 
         _stake(staker1);
-        address tba = deal.getTokenBoundAccount(tokenId);
+        AccountV3TBD tba = deal.getTokenBoundAccount(tokenId);
         notEscrowToken.transfer(address(tba), 100);
-        assertEq(notEscrowToken.balanceOf(tba), 100);
+        assertEq(notEscrowToken.balanceOf(address(tba)), 100);
         assertEq(notEscrowToken.balanceOf(sponsor), 0);
 
-        AccountV3TBD account = AccountV3TBD(payable(tba));
         bytes memory erc20TransferCall =
             abi.encodeWithSignature("transfer(address,uint256)", sponsor, 100);
         vm.prank(staker1);
-        account.execute(payable(address(notEscrowToken)), 0, erc20TransferCall, 0);
-        assertEq(notEscrowToken.balanceOf(tba), 0);
+        tba.execute(payable(address(notEscrowToken)), 0, erc20TransferCall, 0);
+        assertEq(notEscrowToken.balanceOf(address(tba)), 0);
         assertEq(notEscrowToken.balanceOf(sponsor), 100);
     }
 

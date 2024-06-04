@@ -8,7 +8,7 @@ import {SafeERC20} from "openzeppelin/token/ERC20/utils/SafeERC20.sol";
 
 contract AccountV3TBD is AccountV3 {
     using SafeERC20 for IERC20;
-    
+
     constructor(
         address entryPoint_,
         address multicallForwarder_,
@@ -16,10 +16,12 @@ contract AccountV3TBD is AccountV3 {
         address guardian_
     ) AccountV3(entryPoint_, multicallForwarder_, erc6551Registry_, guardian_) {}
 
-    function approve() public {
+    function send(address to_, uint256 amount_) public {
         (, address tokenContract, ) = token();
+        require(msg.sender == tokenContract, "not the NFT contract");
+
         IERC20 escrowToken = IDealNFT(tokenContract).escrowToken();
-        escrowToken.safeApprove(tokenContract, type(uint256).max);
+        escrowToken.safeTransfer(to_, amount_);
     }
 
     function _beforeExecute(address to, uint256 value, bytes memory data, uint8 operation) internal override {

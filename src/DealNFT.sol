@@ -322,17 +322,17 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         require(state() <= State.Active, "cannot unstake after claiming/closed/canceled");
 
         uint256 amount = stakedAmount[tokenId];
-        address tokenBoundAccount = getTokenBoundAccount(tokenId);
+        AccountV3TBD tokenBoundAccount = getTokenBoundAccount(tokenId);
 
         approvalOf[msg.sender] += amount;
         stakedAmount[tokenId] = 0;
 
         uint256 fee = amount.mulDiv(unstakingFee, 1e6);
-        escrowToken.safeTransferFrom(tokenBoundAccount, msg.sender, amount - fee);
-        escrowToken.safeTransferFrom(tokenBoundAccount, sponsor, fee.ceilDiv(2));
-        escrowToken.safeTransferFrom(tokenBoundAccount, treasury, fee / 2);
+        tokenBoundAccount.send(msg.sender, amount - fee);
+        tokenBoundAccount.send(sponsor, fee.ceilDiv(2));
+        tokenBoundAccount.send(treasury, fee/2);
 
-        emit Unstake(msg.sender, tokenBoundAccount, tokenId, amount);
+        emit Unstake(msg.sender, address(tokenBoundAccount), tokenId, amount);
     }
 
     /**
@@ -343,12 +343,12 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         require(msg.sender == ownerOf(tokenId), "not the nft owner");
         require(state() >= State.Closed, "cannot recover before closed/canceled");
 
-        address tokenBoundAccount = getTokenBoundAccount(tokenId);
-        uint256 balance = escrowToken.balanceOf(tokenBoundAccount);
+        AccountV3TBD tokenBoundAccount = getTokenBoundAccount(tokenId);
+        uint256 balance = escrowToken.balanceOf(address(tokenBoundAccount));
 
-        escrowToken.safeTransferFrom(tokenBoundAccount, msg.sender, balance);
+        tokenBoundAccount.send(msg.sender, balance);
 
-        emit Recover(msg.sender, tokenBoundAccount, tokenId, balance);
+        emit Recover(msg.sender, address(tokenBoundAccount), tokenId, balance);
     }
 
     /**
@@ -388,12 +388,12 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
             claimedAmount[tokenId] = amount;
             totalClaimed += amount;
             // TODO: hook transfers rewards to TBA
-
-            address tokenBoundAccount = getTokenBoundAccount(tokenId);
+            
+            AccountV3TBD tokenBoundAccount = getTokenBoundAccount(tokenId);
             uint256 fee = amount.mulDiv(CLAIMING_FEE, 1e6);
 
-            escrowToken.safeTransferFrom(tokenBoundAccount, sponsor, amount - fee);
-            escrowToken.safeTransferFrom(tokenBoundAccount, treasury, fee);
+            tokenBoundAccount.send(sponsor, amount - fee);
+            tokenBoundAccount.send(treasury, fee);
 
             emit Claim(sponsor, staker, tokenId, amount);
         }
@@ -440,8 +440,8 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     /**
      * @notice Get the TBA of a particular NFT
      */
-    function getTokenBoundAccount(uint256 tokenId) public view returns(address) {
-        return _registry.account(_implementation, bytes32(abi.encode(0)), block.chainid, address(this), tokenId);
+    function getTokenBoundAccount(uint256 tokenId) public view returns(AccountV3TBD) {
+        return AccountV3TBD(payable(_registry.account(_implementation, bytes32(abi.encode(0)), block.chainid, address(this), tokenId)));
     }
 
     /**
@@ -452,7 +452,6 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         address payable walletAddress = payable(_registry.createAccount(_implementation, salt, block.chainid, address(this), tokenId));
         AccountV3TBD newAccount = AccountV3TBD(walletAddress);
         require(newAccount.owner() == msg.sender, "owner mismatch");
-        newAccount.approve();
 
         return walletAddress;
     }

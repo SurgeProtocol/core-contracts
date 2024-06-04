@@ -22,7 +22,7 @@ contract DealNFTStakeTest is Test, DealSetup {
         assertEq(deal.stakedAmount(tokenId), amount);
         assertEq(deal.totalStaked(), amount);
         assertEq(
-            escrowToken.balanceOf(deal.getTokenBoundAccount(tokenId)),
+            escrowToken.balanceOf(address(deal.getTokenBoundAccount(tokenId))),
             amount
         );
         assertEq(escrowToken.balanceOf(staker1), 0);
@@ -35,7 +35,7 @@ contract DealNFTStakeTest is Test, DealSetup {
         assertEq(deal.stakedAmount(tokenId), amount);
         assertEq(deal.totalStaked(), amount * 2);
         assertEq(
-            escrowToken.balanceOf(deal.getTokenBoundAccount(tokenId)),
+            escrowToken.balanceOf(address(deal.getTokenBoundAccount(tokenId))),
             amount
         );
         assertEq(escrowToken.balanceOf(staker2), 0);
