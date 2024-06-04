@@ -6,7 +6,6 @@ import {DealNFT} from "./DealNFT.sol";
 contract DealFactory {
 
     event Create(address indexed deal, address indexed sponsor, string name, string symbol);
-    event Sponsor(address indexed sponsor, bool approved);
 
     address private _registry;
     address private _implementation;
