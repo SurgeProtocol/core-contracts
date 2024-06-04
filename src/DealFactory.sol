@@ -7,9 +7,9 @@ contract DealFactory {
 
     event Create(address indexed deal, address indexed sponsor, string name, string symbol);
 
-    address private _registry;
-    address private _implementation;
-    address private _treasury;
+    address private immutable _registry;
+    address private immutable _implementation;
+    address private immutable _treasury;
     string private _baseURI;
 
     constructor(
