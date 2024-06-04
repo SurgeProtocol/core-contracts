@@ -160,6 +160,11 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         _;
     }
 
+    modifier onlySponsorOrArbitrator() {
+        require(msg.sender == sponsor || msg.sender == arbitrator, "not the sponsor or arbitrator");
+        _;
+    }
+
     /**
      * @notice Setup the deal
      * @param escrowToken_ The address of the escrow token
@@ -294,7 +299,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     /**
      * @notice Cancel the deal
      */
-    function cancel() external nonReentrant onlySponsor {
+    function cancel() external nonReentrant onlySponsorOrArbitrator {
         require(state() <= State.Active, "cannot be canceled");
         _canceled = true;
         emit Cancel(sponsor);
