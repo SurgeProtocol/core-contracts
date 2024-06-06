@@ -22,10 +22,9 @@ contract DeployDealNFT is Script {
         // address implementation = 0x6AE9d37F3c4240c9288059B743652b67cE20FcDD;
         // address treasury = 0x39110eEfD8542b3308817a27EbD3509386D37754;
 
-
-        address sponsor = 0x7Adc86401f246B87177CEbBEC189dE075b75Af3A;
-        string memory name = "Your Deal";
-        string memory symbol = "DRGN";
+        address sponsor = 0xF2D3Ba4Ad843Ac0842Baf487660FCb3B208c988c;
+        string memory name = "Arbitrum Beta $1000 Bonus";
+        string memory symbol = "SRGBETA1";
         string memory baseURI = "https://api.surge.rip";
 
         address deal = Create2.computeAddress(
