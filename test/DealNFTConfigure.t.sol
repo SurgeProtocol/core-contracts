@@ -26,7 +26,7 @@ contract DealNFTConfigureTest is Test, DealSetup {
         assertEq(address(deal.escrowToken()), address(0));
         assertEq(deal.allowToken(address(escrowToken)), true);
         assertEq(deal.closingDelay(), 0);
-        assertEq(deal.web(), "");
+        assertEq(deal.website(), "");
         assertEq(deal.twitter(), "");
         assertEq(deal.image(), "");
 
@@ -36,7 +36,7 @@ contract DealNFTConfigureTest is Test, DealSetup {
         assertEq(address(deal.escrowToken()), address(escrowToken));
         assertEq(deal.allowToken(address(escrowToken)), false);
         assertEq(deal.closingDelay(), 30 minutes);
-        assertEq(deal.web(), "https://test1.com");
+        assertEq(deal.website(), "https://test1.com");
         assertEq(deal.twitter(), "https://test2.com");
         assertEq(deal.image(), "https://test3.com");
     }

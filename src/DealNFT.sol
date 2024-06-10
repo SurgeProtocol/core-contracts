@@ -65,7 +65,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     IERC20 public escrowToken;
     uint256 public closingDelay;
     uint256 public unstakingFee;
-    string public web;
+    string public website;
     string public twitter;
     string public image;
 
@@ -128,13 +128,6 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         emit Deal(sponsor, name_, symbol_);
     }
 
-    /**
-     * @notice Modifier to check the caller is the sponsor
-     */
-    modifier onlySponsor() {
-        require(msg.sender == sponsor, "not the sponsor");
-        _;
-    }
 
     /**
      * @notice modifier to check claim requirements
@@ -148,6 +141,37 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     }
 
     /**
+     * @notice Modifier to check the deal can be configured
+     */
+    modifier canConfigure() {
+        require(state() < State.Closed, "cannot configure anymore");
+
+        if(state() == State.Claiming) {
+            require(totalStaked() < dealMinimum, "minimum stake reached");
+        }
+
+        _;
+    }
+
+    /**
+     * @notice Modifier to check the closing time is valid
+     * @param closingTime_ The closing time to check
+     */
+    modifier validClosingTime(uint256 closingTime_) {
+        require(closingTime_ == 0 || closingTime_ >= block.timestamp + closingDelay, "invalid closing time");
+        require(closingTime_ <= block.timestamp + MAX_CLOSING_RANGE, "invalid closing time");
+        _;
+    }
+
+    /**
+     * @notice Modifier to check the caller is the sponsor
+     */
+    modifier onlySponsor() {
+        require(msg.sender == sponsor, "not the sponsor");
+        _;
+    }
+
+    /**
      * @notice Modifier to check the caller is the arbitrator
      */
     modifier onlyArbitrator() {
@@ -155,11 +179,18 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         _;
     }
 
+    /**
+     * @notice Modifier to check the caller is the owner of the NFT
+     * @param tokenId The ID of the NFT
+     */
     modifier onlyTokenOwner(uint256 tokenId) {
         require(msg.sender == ownerOf(tokenId), "not the nft owner");
         _;
     }
 
+    /**
+     * @notice Modifier to check the caller is the sponsor or arbitrator
+     */
     modifier onlySponsorOrArbitrator() {
         require(msg.sender == sponsor || msg.sender == arbitrator, "not the sponsor or arbitrator");
         _;
@@ -170,7 +201,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @param escrowToken_ The address of the escrow token
      * @param closingDelay_ The delay before closing the deal
      * @param unstakingFee_ The fee for unstaking tokens
-     * @param web_ The website associated with the deal
+     * @param website_ The website associated with the deal
      * @param twitter_ The Twitter account associated with the deal
      * @param image_ The image associated with the deal
      */
@@ -178,7 +209,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         address escrowToken_,
         uint256 closingDelay_,
         uint256 unstakingFee_,
-        string memory web_,
+        string memory website_,
         string memory twitter_,
         string memory image_
     ) external nonReentrant onlySponsor {
@@ -187,11 +218,27 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         escrowToken = IERC20(escrowToken_);
         closingDelay = closingDelay_;
         unstakingFee = unstakingFee_;
-        web = web_;
+        website = website_;
         twitter = twitter_;
         image = image_;
 
-        emit Setup(sponsor, address(escrowToken), closingDelay, unstakingFee, web, twitter, image);
+        emit Setup(sponsor, address(escrowToken), closingDelay, unstakingFee, website, twitter, image);
+    }
+
+    /**
+     * @notice Set the sponsor's website
+     * @param website_ The website URL
+     */
+    function setWeb(string memory website_) external nonReentrant onlySponsor canConfigure {
+        website = website_;
+    }
+
+    /**
+     * @notice Set the sponsor's Twitter handle
+     * @param twitter_ The Twitter handle
+     */
+    function setTwitter(string memory twitter_) external nonReentrant onlySponsor canConfigure {
+        twitter = twitter_;
     }
 
     /**
@@ -203,7 +250,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         require(closingDelay > 0, "closing delay cannot be zero");
         require(closingDelay < MAX_CLOSING_RANGE, "closing delay too big");
         require(unstakingFee <= MAX_FEE, "cannot be bigger than 10%");
-        require(bytes(web).length > 0, "web cannot be empty");
+        require(bytes(website).length > 0, "web cannot be empty");
         require(bytes(twitter).length > 0, "twitter cannot be empty");
         require(bytes(image).length > 0, "image cannot be empty");
 
@@ -225,16 +272,8 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         uint256 dealMinimum_,
         uint256 dealMaximum_,
         address arbitrator_
-    ) external nonReentrant onlySponsor {
-        require(closingTime_ == 0 || closingTime_ >= block.timestamp + closingDelay, "invalid closing time");
-        require(closingTime_ <= block.timestamp + MAX_CLOSING_RANGE, "invalid closing time");
-
+    ) external nonReentrant onlySponsor canConfigure validClosingTime(closingTime_) {
         require(dealMinimum_ <= dealMaximum_, "wrong deal range");
-        require(state() < State.Closed, "cannot configure anymore");
-
-        if(state() == State.Claiming) {
-            require(totalStaked() < dealMinimum, "minimum stake reached");
-        }
 
         description = description_;
         closingTime = closingTime_;
@@ -244,6 +283,44 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
 
         emit Configure(sponsor, description, closingTime, dealMinimum, dealMaximum, arbitrator);
     }
+
+    /**
+     * @notice Set the description of the deal
+     * @param description_ The description of the deal
+     */
+    function setDescription(string memory description_) external nonReentrant onlySponsor canConfigure {
+        description = description_;
+    }
+
+    /**
+     * @notice Set the closing time of the deal
+     * @param closingTime_ The closing time of the deal
+     */
+    function setClosingTime(uint256 closingTime_) external 
+        nonReentrant onlySponsor canConfigure validClosingTime(closingTime_)
+    {
+        closingTime = closingTime_;
+    }
+
+    /**
+     * @notice Set the deal boundaries
+     * @param dealMinimum_ The minimum amount of tokens required for the deal
+     * @param dealMaximum_ The maximum amount of tokens allowed for the deal
+     */
+    function setDealRange(uint256 dealMinimum_, uint256 dealMaximum_) external nonReentrant onlySponsor canConfigure {
+        require(dealMinimum_ <= dealMaximum_, "wrong deal range");
+        dealMinimum = dealMinimum_;
+        dealMaximum = dealMaximum_;
+    }
+
+    /**
+     * @notice Set the arbitrator of the deal
+     * @param arbitrator_ The address of the arbitrator
+     */
+    function setArbitrator(address arbitrator_) external nonReentrant onlySponsor canConfigure {
+        arbitrator = arbitrator_;
+    }
+
 
     /**
      * @notice Set whether the NFTs are transferrable or not
