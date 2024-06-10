@@ -23,6 +23,7 @@ contract DeployDealFactory is Script {
         // address treasury = 0x39110eEfD8542b3308817a27EbD3509386D37754;
 
         string memory baseURI = "https://api.surge.rip";
+        address owner = treasury;
 
         address dealFactory = Create2.computeAddress(
             salt,
@@ -30,6 +31,7 @@ contract DeployDealFactory is Script {
                 abi.encodePacked(
                     type(DealFactory).creationCode,
                     abi.encode(
+                        owner,
                         registry,
                         implementation,
                         treasury,
@@ -44,6 +46,7 @@ contract DeployDealFactory is Script {
         if (dealFactory.code.length == 0) {
             vm.startBroadcast();
             new DealFactory{salt: salt}(
+                owner,
                 registry,
                 implementation,
                 treasury,
@@ -62,7 +65,9 @@ contract DeployDealFactory is Script {
             block.chainid,
             dealFactory,
             string.concat(
-                "src/DealFactory.sol:DealFactory --constructor-args $(cast abi-encode \"constructor(address,address,address,string)\" ",
+                "src/DealFactory.sol:DealFactory --constructor-args $(cast abi-encode \"constructor(address,address,address,address,string)\" ",
+                Strings.toHexString(owner),
+                " ",
                 Strings.toHexString(registry),
                 " ",
                 Strings.toHexString(implementation),
