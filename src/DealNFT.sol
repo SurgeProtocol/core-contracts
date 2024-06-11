@@ -27,7 +27,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     event Setup(address sponsor, address escrowToken, uint256 closingDelay, uint256 unstakingFee, string web, string twitter, string image);
     event Activate(address indexed sponsor);
     event Configure(address indexed sponsor, string description, uint256 closingTime, uint256 dealMinimum, uint256 dealMaximum, address arbitrator);
-    event Transferrable(address indexed sponsor, bool transferrable);
+    event Transferable(address indexed sponsor, bool transferable);
     event StakerApproval(address indexed sponsor, address staker, uint256 amount);
     event BuyerApproval(address indexed sponsor, address staker, bool qualified);
     event ClaimApproved(address indexed sponsor, address arbitrator);
@@ -76,7 +76,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     uint256 public dealMaximum;
     address public arbitrator;
 
-    bool public transferrable;
+    bool public transferable;
     bool public claimApproved;
 
     // Deal statistics
@@ -323,15 +323,15 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
 
 
     /**
-     * @notice Set whether the NFTs are transferrable or not
-     * @param transferrable_ Boolean indicating if NFTs are transferrable
+     * @notice Set whether the NFTs are transferable or not
+     * @param transferable_ Boolean indicating if NFTs are transferable
      */
-    function setTransferrable(bool transferrable_) external nonReentrant onlySponsor {
+    function setTransferable(bool transferable_) external nonReentrant onlySponsor {
         require(state() != State.Canceled, "cannot be changed anymore");
         require(!_afterClosed(), "cannot be changed anymore");
 
-        transferrable = transferrable_;
-        emit Transferrable(sponsor, transferrable_);
+        transferable = transferable_;
+        emit Transferable(sponsor, transferable_);
     }
 
     /**
@@ -577,7 +577,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @inheritdoc ERC721
      */
     function _transfer(address from, address to, uint256 tokenId) internal override {
-        require(transferrable, "not transferrable");
+        require(transferable, "not transferable");
 
         if(whitelistStakes) {
             uint256 amount = stakedAmount[tokenId];

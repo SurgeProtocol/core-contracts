@@ -15,10 +15,10 @@ contract DealNFTTransferTest is Test, DealSetup {
 
     function test_TransferNFT() public {
         vm.expectEmit(address(deal));
-        emit DealNFT.Transferrable(sponsor, true);
+        emit DealNFT.Transferable(sponsor, true);
 
         vm.prank(sponsor);
-        deal.setTransferrable(true);
+        deal.setTransferable(true);
 
         _stake(staker1);
         assertEq(deal.ownerOf(tokenId), staker1);
@@ -35,7 +35,7 @@ contract DealNFTTransferTest is Test, DealSetup {
 
     function test_RevertWhen_TransferNFT_toNotApproved() public {
         vm.prank(sponsor);
-        deal.setTransferrable(true);
+        deal.setTransferable(true);
 
         vm.prank(sponsor);
         deal.setWhitelists(true, true);
@@ -55,11 +55,11 @@ contract DealNFTTransferTest is Test, DealSetup {
 
     function test_RevertWhen_TransferNFT() public {
         vm.prank(sponsor);
-        deal.setTransferrable(false);
+        deal.setTransferable(false);
         _stake(staker1);
         assertEq(deal.ownerOf(tokenId), staker1);
 
-        vm.expectRevert("not transferrable");
+        vm.expectRevert("not transferable");
         vm.prank(staker1);
         deal.transferFrom(staker1, staker2, tokenId);
     }

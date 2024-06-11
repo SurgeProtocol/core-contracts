@@ -47,7 +47,7 @@ contract DealNFTConfigureTest is Test, DealSetup {
         // before config
         assertEq(deal.description(), "");
         assertEq(deal.closingTime(), 0);
-        assertEq(deal.transferrable(), false);
+        assertEq(deal.transferable(), false);
         assertEq(deal.dealMinimum(), 0);
         assertEq(deal.dealMaximum(), 0);
 
@@ -58,7 +58,7 @@ contract DealNFTConfigureTest is Test, DealSetup {
         assertEq(deal.closingTime(), block.timestamp + 2 weeks);
         assertEq(deal.dealMinimum(), 0);
         assertEq(deal.dealMaximum(), 2000000);
-        assertEq(deal.transferrable(), false);
+        assertEq(deal.transferable(), false);
     }
 
     function test_Activate() public {
