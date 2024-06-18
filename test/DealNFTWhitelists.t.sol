@@ -4,60 +4,69 @@ pragma solidity 0.8.25;
 import {Test, console} from "forge-std/Test.sol";
 import {DealNFT} from "../src/DealNFT.sol";
 import {DealSetup} from "./DealSetup.sol";
+import {Whitelists} from "../src/Whitelists.sol";
 
 contract DealNFTWhitelistsTest is Test, DealSetup {
+    Whitelists whitelist;
+
     function setUp() public {
         _init();        
         _setup();
         _configure();
         _activate();
+
+        whitelist = new Whitelists(address(sponsor));
     }
 
     function test_SetWhitelists() public {
-        assertEq(deal.whitelistStakes(), false);
-        assertEq(deal.whitelistClaims(), false);
+        assertEq(deal.stakersWhitelist(), address(0));
+        assertEq(deal.claimsWhitelist(), address(0));
 
         vm.prank(sponsor);
-        deal.setWhitelists(true, true);
+        deal.setStakersWhitelist(address(whitelist));
+        vm.prank(sponsor);
+        deal.setClaimsWhitelist(address(whitelist));
 
-        assertEq(deal.whitelistStakes(), true);
-        assertEq(deal.whitelistClaims(), true);
+        assertEq(deal.stakersWhitelist(), address(whitelist));
+        assertEq(deal.claimsWhitelist(), address(whitelist));
     }
 
     function test_RevertWhen_SetWhitelistsWithWrongSender() public {
         vm.prank(staker1);
         vm.expectRevert("not the sponsor");
-        deal.setWhitelists(true, true);
+        deal.setStakersWhitelist(address(whitelist));
+        vm.expectRevert("not the sponsor");
+        deal.setClaimsWhitelist(address(whitelist));
     }
 
     function test_StakingWithApproval() public {
         vm.prank(sponsor);
-        deal.setWhitelists(true, false);
+        deal.setStakersWhitelist(address(whitelist));
 
         vm.prank(sponsor);
-        deal.approveStaker(staker1, amount);
+        whitelist.approveStaker(staker1, amount);
 
         _stake(staker1);
     }
 
     function test_RevertWhen_StakingWithoutApproval() public {
         vm.prank(sponsor);
-        deal.setWhitelists(true, false);
+        deal.setStakersWhitelist(address(whitelist));
 
-        vm.expectRevert("insufficient approval");
+        vm.expectRevert("whitelist error");
         _stake(staker1);
     }
 
     function test_SkipsUnqualifiedClaims() public {
         vm.prank(sponsor);
-        deal.setWhitelists(false, true);
+        deal.setClaimsWhitelist(address(whitelist));
 
         _stake(staker1);
         _stake(staker2);
 
         assertEq(deal.totalStaked(), 0);
         vm.prank(sponsor);
-        deal.approveBuyer(staker1, true);
+        whitelist.approveBuyer(staker1, true);
         assertEq(deal.totalStaked(), amount);
 
         skip(15 days);

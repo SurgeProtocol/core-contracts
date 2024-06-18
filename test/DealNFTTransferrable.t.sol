@@ -3,6 +3,7 @@ pragma solidity 0.8.25;
 
 import {Test, console} from "forge-std/Test.sol";
 import {DealNFT} from "../src/DealNFT.sol";
+import {Whitelists} from "../src/Whitelists.sol";
 import {DealSetup} from "./DealSetup.sol";
 
 contract DealNFTTransferTest is Test, DealSetup {
@@ -34,21 +35,19 @@ contract DealNFTTransferTest is Test, DealSetup {
     }
 
     function test_RevertWhen_TransferNFT_toNotApproved() public {
-        vm.prank(sponsor);
+        Whitelists whitelist = new Whitelists(address(sponsor));
+
+        vm.startPrank(sponsor);
         deal.setTransferable(true);
-
-        vm.prank(sponsor);
-        deal.setWhitelists(true, true);
-
-        vm.prank(sponsor);
-        deal.approveStaker(staker1, amount);
-
-        vm.prank(sponsor);
-        deal.approveStaker(staker2, amount-1);
+        deal.setStakersWhitelist(address(whitelist));
+        deal.setClaimsWhitelist(address(whitelist));
+        whitelist.approveStaker(staker1, amount);
+        whitelist.approveStaker(staker2, amount-1);
+        vm.stopPrank();
 
         _stake(staker1);
 
-        vm.expectRevert("insufficient approval");
+        vm.expectRevert("whitelist error");
         vm.prank(staker1);
         deal.transferFrom(staker1, staker2, tokenId);
     }
