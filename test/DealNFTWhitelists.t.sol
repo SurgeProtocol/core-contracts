@@ -19,16 +19,16 @@ contract DealNFTWhitelistsTest is Test, DealSetup {
     }
 
     function test_SetWhitelists() public {
-        assertEq(deal.stakersWhitelist(), address(0));
-        assertEq(deal.claimsWhitelist(), address(0));
+        assertEq(address(deal.stakersWhitelist()), address(0));
+        assertEq(address(deal.claimsWhitelist()), address(0));
 
         vm.prank(sponsor);
         deal.setStakersWhitelist(address(whitelist));
         vm.prank(sponsor);
         deal.setClaimsWhitelist(address(whitelist));
 
-        assertEq(deal.stakersWhitelist(), address(whitelist));
-        assertEq(deal.claimsWhitelist(), address(whitelist));
+        assertEq(address(deal.stakersWhitelist()), address(whitelist));
+        assertEq(address(deal.claimsWhitelist()), address(whitelist));
     }
 
     function test_RevertWhen_SetWhitelistsWithWrongSender() public {

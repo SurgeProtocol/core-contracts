@@ -83,10 +83,11 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     uint256 public totalClaimed;
     mapping(uint256 tokenId => uint256) public stakedAmount;
     mapping(uint256 tokenId => uint256) public claimedAmount;
+    mapping(address staker => uint256) public stakes;
 
     // Whitelists
-    address public stakersWhitelist;
-    address public claimsWhitelist;
+    IWhitelist public stakersWhitelist;
+    IWhitelist public claimsWhitelist;
 
 
     /**
@@ -346,17 +347,17 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @param whitelist_ enable whitelisting on stakes
      */
     function setStakersWhitelist(address whitelist_) external nonReentrant onlySponsor {
-        stakersWhitelist = whitelist_;
-        emit SetStakersWhitelist(stakersWhitelist);
+        stakersWhitelist = IWhitelist(whitelist_);
+        emit SetStakersWhitelist(whitelist_);
     }
 
     /**
-     * @notice configure whitelists for staking
-     * @param whitelist_ enable whitelisting on stakes
+     * @notice configure whitelists for claming
+     * @param whitelist_ enable whitelisting on claim
      */
     function setClaimsWhitelist(address whitelist_) external nonReentrant onlySponsor {
-        claimsWhitelist = whitelist_;
-        emit SetClaimsWhitelist(claimsWhitelist);
+        claimsWhitelist = IWhitelist(whitelist_);
+        emit SetClaimsWhitelist(whitelist_);
     }
 
     /**
@@ -375,13 +376,15 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     function stake(uint256 amount) external nonReentrant {
         require(state() == State.Active, "not an active deal");
         require(amount > 0, "invalid amount");
+        uint256 currentStake = stakes[msg.sender] + amount;
 
-        if(stakersWhitelist != ADDRESS_ZERO){
-            require(IWhitelist(stakersWhitelist).canStake(msg.sender, amount), "whitelist error");
+        if(address(stakersWhitelist) != ADDRESS_ZERO){
+            require(stakersWhitelist.canStake(msg.sender, currentStake), "whitelist error");
         }
 
         uint256 newTokenId = _tokenId++;
         stakedAmount[newTokenId] = amount;
+        stakes[msg.sender] = currentStake;
 
         _safeMint(msg.sender, newTokenId);
         address newAccount = _createTokenBoundAccount(newTokenId);
@@ -401,6 +404,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         AccountV3TBD tokenBoundAccount = getTokenBoundAccount(tokenId);
 
         stakedAmount[tokenId] = 0;
+        stakes[msg.sender] -= amount;
 
         uint256 fee = amount.mulDiv(unstakingFee, PRECISION);
         tokenBoundAccount.send(msg.sender, amount - fee);
@@ -450,7 +454,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         uint256 amount = stakedAmount[tokenId];
         address staker = ownerOf(tokenId);
 
-        if(claimsWhitelist != ADDRESS_ZERO && !IWhitelist(claimsWhitelist).canClaim(staker, amount)) {
+        if(address(claimsWhitelist) != ADDRESS_ZERO && !claimsWhitelist.canClaim(staker)) {
             return;
         }
 
@@ -498,7 +502,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     function totalStaked() public view returns (uint256 total) {
         for(uint256 i = 0; i < _tokenId; i++) {
             address staker = ownerOf(i);
-            if(claimsWhitelist == ADDRESS_ZERO || IWhitelist(claimsWhitelist).canClaim(staker, stakedAmount[i])) {
+            if(address(claimsWhitelist) == ADDRESS_ZERO || claimsWhitelist.canClaim(staker)) {
                 total += stakedAmount[i];
             }
         }
@@ -564,11 +568,15 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     function _transfer(address from, address to, uint256 tokenId) internal override {
         require(transferable, "not transferable");
 
-        uint256 amount = stakedAmount[tokenId];
+        uint256 amount = stakedAmount[tokenId];        
 
-        if(stakersWhitelist != ADDRESS_ZERO){
-            require(IWhitelist(stakersWhitelist).canTransfer(from, to, amount), "whitelist error");
+        if(address(stakersWhitelist) != ADDRESS_ZERO){
+            uint256 staked = stakes[to] + amount;
+            require(stakersWhitelist.canStake(to, staked), "whitelist error");
         }
+
+        stakes[from] -= amount;
+        stakes[to] += amount;
 
         super._transfer(from, to, tokenId);
     }
