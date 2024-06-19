@@ -7,7 +7,7 @@ A TBD accepts stakes (escrow deposits) of a specific type of token. Then, it app
 
 ## Documentation
 
-https://not.created.yet/
+https://docs.surge.rip/
 
 ## Usage
 The Sponsor constructs a Deal, with an NFT and terms for stakers. The deal becomes active for staking, reaches a close, and might be claimed.
