@@ -10,6 +10,7 @@ import {ReentrancyGuard} from "openzeppelin/security/ReentrancyGuard.sol";
 import {IERC6551Registry} from "erc6551/interfaces/IERC6551Registry.sol";
 import {AccountV3TBD} from "./AccountV3TBD.sol";
 import {IDealNFT} from "./interfaces/IDealNFT.sol";
+import {IWhitelist} from "./interfaces/IWhitelist.sol";
 
 
 /**
@@ -28,10 +29,9 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     event Activate(address indexed sponsor);
     event Configure(address indexed sponsor, string description, uint256 closingTime, uint256 dealMinimum, uint256 dealMaximum, address arbitrator);
     event Transferable(address indexed sponsor, bool transferable);
-    event StakerApproval(address indexed sponsor, address staker, uint256 amount);
-    event BuyerApproval(address indexed sponsor, address staker, bool qualified);
     event ClaimApproved(address indexed sponsor, address arbitrator);
-    event WhitelistsSetup(bool whitelistStakes, bool whitelistClaims);
+    event SetStakersWhitelist(address whitelist);
+    event SetClaimsWhitelist(address whitelist);
     event Cancel(address indexed sponsor);
     event Claim(address indexed sponsor, address indexed staker, uint256 tokenId, uint256 amount);
     event Stake(address indexed staker, address tokenBoundAccount, uint256 tokenId, uint256 amount);
@@ -83,12 +83,12 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     uint256 public totalClaimed;
     mapping(uint256 tokenId => uint256) public stakedAmount;
     mapping(uint256 tokenId => uint256) public claimedAmount;
+    mapping(address staker => uint256) public stakes;
 
-    // Staker approvals
-    mapping(address staker => uint256) public approvalOf;
-    mapping(address staker => bool) public isQualified;
-    bool public whitelistClaims;
-    bool public whitelistStakes;
+    // Whitelists
+    IWhitelist public stakersWhitelist;
+    IWhitelist public claimsWhitelist;
+
 
     /**
      * @notice Constructor to initialize DealNFT contract
@@ -335,26 +335,6 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     }
 
     /**
-     * @notice Approve a staker to participate in the deal
-     * @param staker_ The address of the staker to whitelist
-     * @param amount_ The approval amount for the staker
-     */
-    function approveStaker(address staker_, uint256 amount_) external nonReentrant onlySponsor {
-        approvalOf[staker_] = amount_;
-        emit StakerApproval(sponsor, staker_, amount_);
-    }
-
-    /**
-     * @notice Approve a staker to be claimed by the sponsor
-     * @param staker_ The address of the staker to whitelist
-     * @param qualified_ is the buyer approved or not
-     */
-    function approveBuyer(address staker_, bool qualified_) external nonReentrant onlySponsor {
-        isQualified[staker_] = qualified_;
-        emit BuyerApproval(sponsor, staker_, qualified_);
-    }
-
-    /**
      * @notice Approve the claim of the deal
      */
     function approveClaim() external nonReentrant onlyArbitrator {
@@ -363,14 +343,21 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     }
 
     /**
-     * @notice configure whitelists for staking and claiming
-     * @param whitelistStakes_ enable whitelisting on stakes
-     * @param whitelistClaims_ enable whitelisting on claims
+     * @notice configure whitelists for staking
+     * @param whitelist_ enable whitelisting on stakes
      */
-    function setWhitelists(bool whitelistStakes_, bool whitelistClaims_) external nonReentrant onlySponsor {
-        whitelistStakes = whitelistStakes_;
-        whitelistClaims = whitelistClaims_;
-        emit WhitelistsSetup(whitelistStakes, whitelistClaims);
+    function setStakersWhitelist(address whitelist_) external nonReentrant onlySponsor {
+        stakersWhitelist = IWhitelist(whitelist_);
+        emit SetStakersWhitelist(whitelist_);
+    }
+
+    /**
+     * @notice configure whitelists for claming
+     * @param whitelist_ enable whitelisting on claim
+     */
+    function setClaimsWhitelist(address whitelist_) external nonReentrant onlySponsor {
+        claimsWhitelist = IWhitelist(whitelist_);
+        emit SetClaimsWhitelist(whitelist_);
     }
 
     /**
@@ -389,13 +376,15 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     function stake(uint256 amount) external nonReentrant {
         require(state() == State.Active, "not an active deal");
         require(amount > 0, "invalid amount");
-        if(whitelistStakes) {
-            require(approvalOf[msg.sender] >= amount, "insufficient approval");
-            approvalOf[msg.sender] -= amount;
+        uint256 currentStake = stakes[msg.sender] + amount;
+
+        if(address(stakersWhitelist) != ADDRESS_ZERO){
+            require(stakersWhitelist.canStake(msg.sender, currentStake), "whitelist error");
         }
 
         uint256 newTokenId = _tokenId++;
         stakedAmount[newTokenId] = amount;
+        stakes[msg.sender] = currentStake;
 
         _safeMint(msg.sender, newTokenId);
         address newAccount = _createTokenBoundAccount(newTokenId);
@@ -414,8 +403,8 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         uint256 amount = stakedAmount[tokenId];
         AccountV3TBD tokenBoundAccount = getTokenBoundAccount(tokenId);
 
-        approvalOf[msg.sender] += amount;
         stakedAmount[tokenId] = 0;
+        stakes[msg.sender] -= amount;
 
         uint256 fee = amount.mulDiv(unstakingFee, PRECISION);
         tokenBoundAccount.send(msg.sender, amount - fee);
@@ -465,7 +454,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         uint256 amount = stakedAmount[tokenId];
         address staker = ownerOf(tokenId);
 
-        if(whitelistClaims && !isQualified[staker]) {
+        if(address(claimsWhitelist) != ADDRESS_ZERO && !claimsWhitelist.canClaim(staker)) {
             return;
         }
 
@@ -513,7 +502,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     function totalStaked() public view returns (uint256 total) {
         for(uint256 i = 0; i < _tokenId; i++) {
             address staker = ownerOf(i);
-            if(!whitelistClaims || isQualified[staker]) {
+            if(address(claimsWhitelist) == ADDRESS_ZERO || claimsWhitelist.canClaim(staker)) {
                 total += stakedAmount[i];
             }
         }
@@ -579,13 +568,15 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     function _transfer(address from, address to, uint256 tokenId) internal override {
         require(transferable, "not transferable");
 
-        if(whitelistStakes) {
-            uint256 amount = stakedAmount[tokenId];
-            require(approvalOf[to] >= amount, "insufficient approval");
+        uint256 amount = stakedAmount[tokenId];        
 
-            approvalOf[to] -= amount;
-            approvalOf[from] += amount;
+        if(address(stakersWhitelist) != ADDRESS_ZERO){
+            uint256 staked = stakes[to] + amount;
+            require(stakersWhitelist.canStake(to, staked), "whitelist error");
         }
+
+        stakes[from] -= amount;
+        stakes[to] += amount;
 
         super._transfer(from, to, tokenId);
     }
