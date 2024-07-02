@@ -89,6 +89,12 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     IWhitelist public stakersWhitelist;
     IWhitelist public claimsWhitelist;
 
+    struct StakeData {
+        address owner;
+        address tba;
+        uint256 staked;
+        uint256 claimed;
+    }
 
     /**
      * @notice Constructor to initialize DealNFT contract
@@ -506,6 +512,23 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
                 total += stakedAmount[i];
             }
         }
+    }
+
+    /**
+     * @notice Get the stakes from 0 to a NFT id
+     * @param index The index of the last NFT
+     */
+    function getStakesTo(uint256 index) public view returns (StakeData[] memory) {
+        if(index >= _tokenId) index = _tokenId > 0 ? _tokenId - 1 : 0;
+        StakeData[] memory stakesTo = new StakeData[](index + 1);
+
+        for(uint256 i = 0; i <= index; ) {
+            address staker = ownerOf(i);
+            stakesTo[i] = StakeData(staker, address(getTokenBoundAccount(i)), stakedAmount[i], claimedAmount[i]);
+            unchecked { i++; }
+        }
+
+        return stakesTo;
     }
 
     /**
