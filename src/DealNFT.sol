@@ -75,6 +75,8 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     uint256 public dealMinimum;
     uint256 public dealMaximum;
     address public arbitrator;
+    uint256 public price;
+    uint256 public multiplier;
 
     bool public transferable;
     bool public claimApproved;
@@ -327,6 +329,21 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         arbitrator = arbitrator_;
     }
 
+    /**
+     * @notice Set the price of the reward tokens
+     * @param price_ The price of the reward tokens
+     */
+    function setPrice(uint256 price_) external nonReentrant onlySponsor canConfigure {
+        price = price_;
+    }
+
+    /**
+     * @notice Set the multiplier of the reward tokens
+     * @param multiplier_ The multiplier of the reward tokens
+     */
+    function setMultiplier(uint256 multiplier_) external nonReentrant onlySponsor canConfigure {
+        multiplier = multiplier_;
+    }
 
     /**
      * @notice Set whether the NFTs are transferable or not
