@@ -9,6 +9,9 @@ contract Whitelists is IWhitelist {
 
     address public sponsor;
 
+    event StakerApproval(address indexed sponsor, address staker, uint256 amount);
+    event BuyerApproval(address indexed sponsor, address staker, bool qualified);
+
     modifier onlySponsor() {
         require(msg.sender == sponsor, "only sponsor");
         _;
@@ -25,6 +28,7 @@ contract Whitelists is IWhitelist {
      */
     function approveStaker(address staker_, uint256 amount_) external onlySponsor {
         stakesApprovals[staker_] = amount_;
+        emit StakerApproval(sponsor, staker_, amount_);
     }
 
     /**
@@ -34,6 +38,7 @@ contract Whitelists is IWhitelist {
      */
     function approveBuyer(address staker_, bool qualified_) external onlySponsor {
         claimsApprovals[staker_] = qualified_;
+        emit BuyerApproval(sponsor, staker_, qualified_);
     }
 
     /**
