@@ -15,11 +15,11 @@ contract DeployDealFactory is Script {
         address registry = 0x000000006551c19487814612e58FE06813775758;
 
         // arbitrum
-        address implementation = 0x8A6bDD9B33D21D96112cc67B52C91719178Cc704;
+        address implementation = 0xe11e02Ac7FCd2474Af531e12d272f71aC2E11488;
         address treasury = 0x837bb49403346a307C449Fe831cCA5C1992C57f5;
 
         // base
-        // address implementation = 0x6AE9d37F3c4240c9288059B743652b67cE20FcDD;
+        // address implementation = 0x951C52FFA6feF92C883Fd49F762394e5066888A1;
         // address treasury = 0x39110eEfD8542b3308817a27EbD3509386D37754;
 
         string memory baseURI = "https://api.surge.rip";
