@@ -6,9 +6,11 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 
 contract Surge is ERC20, ERC20Permit, ERC20Votes {
-    constructor() ERC20("SurgeTST", "SRGTST") ERC20Permit("Surge") {
-        // TODO: move to multisig, define amount, remove TST
-        _mint(0x7Adc86401f246B87177CEbBEC189dE075b75Af3A, 1000000000 * 10 ** decimals());
+
+    constructor(address mintTo, uint256 totalSupply)
+        ERC20("SurgeTST", "SRGTST") ERC20Permit("Surge")
+    {
+        _mint(mintTo, totalSupply * 10 ** decimals());
     }
 
     function _afterTokenTransfer(address from, address to, uint256 amount)
