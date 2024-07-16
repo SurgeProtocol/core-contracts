@@ -7,13 +7,14 @@ import "@openzeppelin/contracts/utils/Create2.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
 import "../src/Whitelists.sol";
+import "./Constants.sol";
 
 contract DeployWhitelist is Script {
     function run() external {
-        bytes32 salt = 0x6551655165516551655165516551655165516551655165516551655165516551;
-        address factory = 0x4e59b44847b379578588920cA78FbF26c0B4956C;
-
-        address sponsor = 0xF2D3Ba4Ad843Ac0842Baf487660FCb3B208c988c;
+        Constants constants = new Constants();
+        bytes32 salt = constants.salt();
+        address factory = constants.factory();
+        address sponsor = constants.sponsor();
 
         address whitelist = Create2.computeAddress(
             salt,
