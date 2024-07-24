@@ -69,6 +69,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     uint256 public multiplier;
     uint256 public distributionAmount;
     uint256 public totalClaimed;
+    uint256 public chainMaximum;
 
     IERC20Metadata public escrowToken;
     IERC20Metadata public rewardToken;
@@ -360,6 +361,13 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     }
 
     /**
+     * @notice Set the maximum amount of tokens allowed for the deal
+     */
+    function setChainMaximum(uint256 maximum) external onlyArbitrator {
+        chainMaximum = maximum;
+    }
+
+    /**
      * @notice configure whitelists for staking
      * @param whitelist_ enable whitelisting on stakes
      */
@@ -480,8 +488,9 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
             return;
         }
 
-        if(totalClaimed + amount > dealMaximum){
-            amount = dealMaximum - totalClaimed;
+        uint256 chainMaximum_ = chainMaximum > 0 ? chainMaximum : dealMaximum;
+        if(totalClaimed + amount > chainMaximum_) {
+            amount = chainMaximum_ - totalClaimed;
         }
 
         if(amount > 0) {
@@ -532,7 +541,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @notice Get the stakes from 0 to a NFT id
      * @param index The index of the last NFT
      */
-    function getStakesTo(uint256 index) public view returns (StakeData[] memory) {
+    function getStakesTo(uint256 index) external view returns (StakeData[] memory) {
         if(index >= _tokenId) index = _tokenId > 0 ? _tokenId - 1 : 0;
         StakeData[] memory stakesTo = new StakeData[](index + 1);
 
@@ -586,7 +595,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     /**
      * @notice Get next available token id
      */
-    function nextId() public view returns (uint256) {
+    function nextId() external view returns (uint256) {
         return _tokenId;
     }
 
