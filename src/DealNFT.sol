@@ -37,6 +37,12 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     event Stake(address indexed staker, address tokenBoundAccount, uint256 tokenId, uint256 amount);
     event Unstake(address indexed staker, address tokenBoundAccount, uint256 tokenId, uint256 amount);
     event Recover(address indexed staker, address tokenBoundAccount, uint256 tokenId, uint256 amount);
+    event WebsiteUpdated(string website);
+    event TwitterUpdated(string twitter);
+    event DescriptionUpdated(string description);
+    event ClosingTimeUpdated(uint256 indexed closingTime);
+    event DealRangeUpdated(uint256 indexed dealMinimum, uint256 indexed dealMaximum);
+    event ArbitratorUpdated(address indexed arbitrator);
 
     // Enum for deal states
     enum State { Setup, Active, Claiming, Closed, Canceled }
@@ -239,6 +245,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      */
     function setWeb(string memory website_) external nonReentrant onlySponsor canConfigure {
         website = website_;
+        emit WebsiteUpdated(website_);
     }
 
     /**
@@ -247,6 +254,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      */
     function setTwitter(string memory twitter_) external nonReentrant onlySponsor canConfigure {
         twitter = twitter_;
+        emit TwitterUpdated(twitter_);
     }
 
     /**
@@ -298,6 +306,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      */
     function setDescription(string memory description_) external nonReentrant onlySponsor canConfigure {
         description = description_;
+        emit DescriptionUpdated(description_);
     }
 
     /**
@@ -308,6 +317,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         nonReentrant onlySponsor canConfigure validClosingTime(closingTime_)
     {
         closingTime = closingTime_;
+        emit ClosingTimeUpdated(closingTime_);
     }
 
     /**
@@ -319,6 +329,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         require(dealMinimum_ <= dealMaximum_, "wrong deal range");
         dealMinimum = dealMinimum_;
         dealMaximum = dealMaximum_;
+        emit DealRangeUpdated(dealMinimum_, dealMaximum_);
     }
 
     /**
@@ -327,6 +338,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      */
     function setArbitrator(address arbitrator_) external nonReentrant onlySponsor canConfigure {
         arbitrator = arbitrator_;
+        emit ArbitratorUpdated(arbitrator_);
     }
 
     /**
