@@ -7,22 +7,18 @@ import "@openzeppelin/contracts/utils/Create2.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
 import "../src/DealFactory.sol";
+import "./Constants.sol";
 
 contract DeployDealFactory is Script {
     function run() external {
-        bytes32 salt = 0x6551655165516551655165516551655165516551655165516551655165516551;
-        address factory = 0x4e59b44847b379578588920cA78FbF26c0B4956C;
-        address registry = 0x000000006551c19487814612e58FE06813775758;
+        Constants constants = new Constants();
+        bytes32 salt = constants.salt();
+        address factory = constants.factory();
+        address registry = constants.registry();
+        address implementation = constants.implementation(block.chainid);
+        address treasury = constants.treasury(block.chainid);
+        string memory baseURI = constants.baseURI();
 
-        // arbitrum
-        address implementation = 0xe11e02Ac7FCd2474Af531e12d272f71aC2E11488;
-        address treasury = 0x837bb49403346a307C449Fe831cCA5C1992C57f5;
-
-        // base
-        // address implementation = 0x951C52FFA6feF92C883Fd49F762394e5066888A1;
-        // address treasury = 0x39110eEfD8542b3308817a27EbD3509386D37754;
-
-        string memory baseURI = "https://api.surge.rip";
         address owner = treasury;
 
         address dealFactory = Create2.computeAddress(
