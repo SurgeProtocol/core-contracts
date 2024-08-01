@@ -1,2 +1,3 @@
 erc6551/=lib/tokenbound/lib/erc6551/src/
 multicall-authenticated/=lib/tokenbound/lib/multicall-authenticated/src/
+prb/=lib/prb-math/src/

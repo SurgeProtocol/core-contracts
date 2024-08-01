@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
-import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
+import {IERC20Metadata} from "openzeppelin/token/ERC20/extensions/IERC20Metadata.sol";
 
 interface IDealNFT {
-    function escrowToken() external view returns (IERC20);
+    function escrowToken() external view returns (IERC20Metadata);
+    function rewardToken() external view returns (IERC20Metadata);
     function allowToken(address to) external view returns (bool);
 }

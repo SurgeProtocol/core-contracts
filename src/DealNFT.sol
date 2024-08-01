@@ -2,7 +2,7 @@
 pragma solidity 0.8.25;
 
 import {ERC721} from "openzeppelin/token/ERC721/ERC721.sol";
-import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
+import {IERC20Metadata} from "openzeppelin/token/ERC20/extensions/IERC20Metadata.sol";
 import {SafeERC20} from "openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import {Strings} from "openzeppelin/utils/Strings.sol";
 import {Math} from "openzeppelin/utils/math/Math.sol";
@@ -11,6 +11,9 @@ import {IERC6551Registry} from "erc6551/interfaces/IERC6551Registry.sol";
 import {AccountV3TBD} from "./AccountV3TBD.sol";
 import {IDealNFT} from "./interfaces/IDealNFT.sol";
 import {IWhitelist} from "./interfaces/IWhitelist.sol";
+import {UD60x18, ud, ln, intoUint256} from "prb/UD60x18.sol";
+
+import "forge-std/console.sol";
 
 
 /**
@@ -21,7 +24,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     using Math for uint256;
     using Strings for address;
     using Strings for uint256;
-    using SafeERC20 for IERC20;
+    using SafeERC20 for IERC20Metadata;
 
     // Events
     event Deal(address indexed sponsor, string name, string symbol);
@@ -68,7 +71,8 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     address public immutable treasury;
 
     // Setup parameters
-    IERC20 public escrowToken;
+    IERC20Metadata public escrowToken;
+    IERC20Metadata public rewardToken;
     uint256 public closingDelay;
     uint256 public unstakingFee;
     string public website;
@@ -81,8 +85,8 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     uint256 public dealMinimum;
     uint256 public dealMaximum;
     address public arbitrator;
-    uint256 public price;
     uint256 public multiplier;
+    uint256 public distributionAmount;
 
     bool public transferable;
     bool public claimApproved;
@@ -150,7 +154,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         require(arbitrator == ADDRESS_ZERO || claimApproved, "claim not approved");
         require(_claimId < _tokenId, "token id out of bounds");
         require(state() == State.Claiming, "not in closing week");
-        require(totalStaked() >= dealMinimum, "minimum stake not reached");
+        require(_totalStaked(_tokenId-1) >= dealMinimum, "minimum stake not reached");
         _;
     }
 
@@ -161,7 +165,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         require(state() < State.Closed, "cannot configure anymore");
 
         if(state() == State.Claiming) {
-            require(totalStaked() < dealMinimum, "minimum stake reached");
+            require(_totalStaked(_tokenId-1) < dealMinimum, "minimum stake reached");
         }
 
         _;
@@ -229,7 +233,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     ) external nonReentrant onlySponsor {
         require(state() == State.Setup, "cannot setup anymore");
 
-        escrowToken = IERC20(escrowToken_);
+        escrowToken = IERC20Metadata(escrowToken_);
         closingDelay = closingDelay_;
         unstakingFee = unstakingFee_;
         website = website_;
@@ -342,19 +346,38 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     }
 
     /**
-     * @notice Set the price of the reward tokens
-     * @param price_ The price of the reward tokens
-     */
-    function setPrice(uint256 price_) external nonReentrant onlySponsor canConfigure {
-        price = price_;
-    }
-
-    /**
      * @notice Set the multiplier of the reward tokens
      * @param multiplier_ The multiplier of the reward tokens
+     * @dev multiplier is in 1e6 precision
      */
     function setMultiplier(uint256 multiplier_) external nonReentrant onlySponsor canConfigure {
         multiplier = multiplier_;
+    }
+
+    /**
+     * @notice Transfer rewards to the deal
+     * @param amount The amount of tokens to transfer
+     */
+    function transferRewards(uint256 amount) external nonReentrant onlySponsor {
+        require(address(rewardToken) != ADDRESS_ZERO, "reward token not set");
+        rewardToken.safeTransferFrom(sponsor, address(this), amount);
+        distributionAmount += amount;
+    }
+
+    /**
+     * @notice Recover rewards from the deal
+     */
+    function recoverRewards() external nonReentrant onlySponsor {
+        require(state() == State.Closed || state() == State.Canceled, "cannot recover rewards");
+        rewardToken.safeTransfer(sponsor, rewardToken.balanceOf(address(this)));
+    }
+
+    /**
+     * @notice Set the reward token
+     * @param rewardToken_ The address of the reward token
+     */
+    function setRewardToken(address rewardToken_) external nonReentrant onlySponsor {
+        rewardToken = IERC20Metadata(rewardToken_);
     }
 
     /**
@@ -468,8 +491,10 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @notice Claim tokens from the deal
      */
     function claim() external nonReentrant onlySponsor canClaim {
+        require(distributionAmount > 0, "no rewards to claim");
+        uint maximum = Math.min(dealMaximum, _totalStaked(_tokenId-1));
         while(_claimId < _tokenId) {
-            _claimNext();
+            _claimNext(maximum);
         }
     }
 
@@ -477,14 +502,16 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @notice Claim the next token id from the deal
      */
     function claimNext() external nonReentrant onlySponsor canClaim {
-        _claimNext();
+        require(distributionAmount > 0, "no rewards to claim");
+         uint maximum = Math.min(dealMaximum, _totalStaked(_tokenId-1));
+        _claimNext(maximum);
     }
 
     /**
      * @notice Internal function to claim the next token id from the deal
      * @dev funds are sent from the TBA to the sponsor until dealMaximum.
      */
-    function _claimNext() private {
+    function _claimNext(uint256 maximum) private {
         uint256 tokenId = _claimId++;
         uint256 amount = stakedAmount[tokenId];
         address staker = ownerOf(tokenId);
@@ -500,7 +527,8 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         if(amount > 0) {        
             claimedAmount[tokenId] = amount;
             totalClaimed += amount;
-            // TODO: hook transfers rewards to TBA
+            uint256 bonus = getRewardsOf(tokenId, maximum);
+            if(bonus > 0) rewardToken.safeTransfer(staker, bonus);
             
             AccountV3TBD tokenBoundAccount = getTokenBoundAccount(tokenId);
             uint256 fee = amount.mulDiv(CLAIMING_FEE, PRECISION);
@@ -534,13 +562,8 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     /** 
      * @notice Get the total amount of tokens staked in the deal
      */
-    function totalStaked() public view returns (uint256 total) {
-        for(uint256 i = 0; i < _tokenId; i++) {
-            address staker = ownerOf(i);
-            if(address(claimsWhitelist) == ADDRESS_ZERO || claimsWhitelist.canClaim(staker)) {
-                total += stakedAmount[i];
-            }
-        }
+    function totalStaked() external view returns (uint256) {
+        return _totalStaked(_tokenId-1);
     }
 
     /**
@@ -558,6 +581,44 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         }
 
         return stakesTo;
+    }
+
+    /**
+     * @notice Get the bonus for a particular stake
+     * @param tokenId The index of the stake
+     * @dev bonus is in 1eN precision, where N is the decimals of the reward token
+     * @dev T = total amount to be distributed
+     * @dev M = first bonus discount
+     * @dev C = deal maximum
+     * @dev L = last stake
+     * @dev X = sum of previous stakes
+     * @dev R = rewards
+     * @dev K1, K2, constants
+     */
+    function getRewardsOf(uint256 tokenId, uint256 maximum) public view returns(uint256) {
+        if (tokenId >= _tokenId || multiplier == 0 || distributionAmount == 0)
+            return 0;
+
+        uint256 T = distributionAmount;
+        uint256 L = stakedAmount[tokenId];
+        if(T == 0 || L == 0) return 0;
+
+        uint256 S = _totalStaked(tokenId);
+        uint X = S - L;
+        uint C = maximum;
+        uint256 M = multiplier;
+
+        if (S > C) { // case: dealMaximum was reached - calculate bonus for the rest
+            L = C > X ? C - X : 0;
+        }
+
+        uint256 lnM = intoUint256(ln(ud(M)));
+        uint256 k1 = (T * 1e18) / lnM; // ends up with reward decimals
+        uint256 k2 = C * 1e18 / (M - 1e18); // ends up with escrow decimals
+        uint256 k3 = 1e18 + (L * 1e18 / (X + k2)); // ends up with precision 1e18
+
+        uint256 result = k1 * intoUint256(ln(ud(k3))) / 1e18;
+        return result;
     }
 
     /**
@@ -597,7 +658,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @notice Check if all tokens have been claimed by the sponsor
      */
     function _isClaimed() private view returns (bool) {
-        return totalClaimed > 0 && (totalClaimed >= dealMaximum || totalClaimed >= totalStaked());
+        return totalClaimed > 0 && (totalClaimed >= dealMaximum || totalClaimed >= _totalStaked(_tokenId-1));
     }
 
     /**
@@ -638,5 +699,17 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      */
     function _baseURI() internal view override returns (string memory) {
         return _base;
+    }
+
+    /**
+     * @notice Get the total amount of tokens staked in the deal
+     */
+    function _totalStaked(uint256 limit) internal view returns (uint256 total) {
+        for(uint256 i = 0; i <= limit; i++) {
+            address staker = ownerOf(i);
+            if(address(claimsWhitelist) == ADDRESS_ZERO || claimsWhitelist.canClaim(staker)) {
+                total += stakedAmount[i];
+            }
+        }
     }
 }
