@@ -488,7 +488,6 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @notice Claim tokens from the deal
      */
     function claim() external nonReentrant onlySponsor canClaim {
-        require(distributionAmount > 0, "no rewards to claim");
         uint maximum = Math.min(dealMaximum, _totalStaked(_tokenId));
         while(_claimId < _tokenId) {
             _claimNext(maximum);
@@ -499,7 +498,6 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @notice Claim the next token id from the deal
      */
     function claimNext() external nonReentrant onlySponsor canClaim {
-        require(distributionAmount > 0, "no rewards to claim");
          uint maximum = Math.min(dealMaximum, _totalStaked(_tokenId));
         _claimNext(maximum);
     }
@@ -521,12 +519,14 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
             amount = dealMaximum - totalClaimed;
         }
 
-        if(amount > 0) {        
+        if(amount > 0) {
             claimedAmount[tokenId] = amount;
             totalClaimed += amount;
-            uint256 bonus = getRewardsOf(tokenId, maximum);
-            if(bonus > 0) rewardToken.safeTransfer(staker, bonus);
-            
+            if(distributionAmount > 0) {
+                uint256 bonus = getRewardsOf(tokenId, maximum);
+                if(bonus > 0) rewardToken.safeTransfer(staker, bonus);
+            }
+
             AccountV3TBD tokenBoundAccount = getTokenBoundAccount(tokenId);
             uint256 fee = amount.mulDiv(CLAIMING_FEE, PRECISION);
 

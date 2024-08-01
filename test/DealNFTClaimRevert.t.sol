@@ -78,16 +78,6 @@ contract DealNFTClaimTest is Test, DealSetup {
         deal.claim();
     }
 
-    function test_RevertWhen_NoRewardsToClaim() public {
-        _stake(staker1);
-        _stake(staker2);
-        skip(15 days);
-
-        vm.expectRevert("no rewards to claim");
-        vm.prank(sponsor);
-        deal.claim();
-    }
-
     function test_RevertWhen_SetRewardTokenNotSponsor() public {
         vm.expectRevert("not the sponsor");
         vm.prank(staker1);
@@ -110,5 +100,11 @@ contract DealNFTClaimTest is Test, DealSetup {
         vm.expectRevert("cannot recover rewards");
         vm.prank(sponsor);
         deal.recoverRewards();
+    }
+
+    function test_RevertWhen_RewardsTokenNotSet() public {
+        vm.expectRevert("reward token not set");
+        vm.prank(sponsor);
+        deal.transferRewards(1);
     }
 }

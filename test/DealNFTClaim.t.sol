@@ -128,6 +128,26 @@ contract DealNFTClaimTest is Test {
         assertEq(deal.totalClaimed(), 150e8);
     }
 
+    function test_ClaimWithManualDeliveredBonus() public {
+        uint256 stakeAmount = 10e8;
+
+        _setup(0);
+        _stake(staker1, stakeAmount);
+        _stake(staker2, stakeAmount*2);
+        _stake(staker3, stakeAmount*3);
+
+        skip(15 days);
+        vm.prank(sponsor);
+        deal.claim();
+
+        assertEq(deal.stakedAmount(0), stakeAmount);
+        assertEq(deal.stakedAmount(1), stakeAmount*2);
+        assertEq(deal.stakedAmount(2), stakeAmount*3);
+        assertEq(deal.claimedAmount(0), stakeAmount);
+        assertEq(deal.claimedAmount(1), stakeAmount*2);
+        assertEq(deal.claimedAmount(2), stakeAmount*3);
+    }
+
     /*
         P = 1; C = 100; M = 5
         CA = ClaimedAmount
@@ -146,15 +166,8 @@ contract DealNFTClaimTest is Test {
         TOTALS
         100	110	-	-	    -	            -	        201,17973908
     */
-     function test_ClaimBonus() public {
-        vm.startPrank(sponsor);
-        deal.configure("desc", block.timestamp + 2 weeks, 50e8, 100e8, address(0));
-        deal.setRewardToken(address(rewardToken));
-        deal.setMultiplier(5e18);
-        rewardToken.approve(address(deal), 10000e12);
-        deal.transferRewards(201179739080000);
-        vm.stopPrank();
-
+     function test_ClaimWithAutomatedDeliveredBonus() public {
+        _setup(201179739080000);
         _stake(staker1, 10e8);
         _stake(staker2, 10e8);
         _stake(staker3, 20e8);
@@ -209,15 +222,8 @@ contract DealNFTClaimTest is Test {
         TOTALS
         100	110	-	-	    -	            -	        160,94379124
     */
-     function test_ClaimBonusWhenMaximumIsNotReached() public {
-        vm.startPrank(sponsor);
-        deal.configure("desc", block.timestamp + 2 weeks, 50e8, 100e8, address(0));
-        deal.setRewardToken(address(rewardToken));
-        deal.setMultiplier(5e18);
-        rewardToken.approve(address(deal), 10000e12);
-        deal.transferRewards(160943791240000);
-        vm.stopPrank();
-
+     function test_ClaimWithAutomatedDeliveredBonus_WhenMaximumIsNotReached() public {
+        _setup(160943791240000);
         _stake(staker1, 10e8);
         _stake(staker2, 10e8);
         _stake(staker3, 20e8);
@@ -246,6 +252,16 @@ contract DealNFTClaimTest is Test {
         assertEq(rewardToken.balanceOf(staker3), bonus2);
         assertEq(rewardToken.balanceOf(staker4), bonus3);
         assertEq(rewardToken.balanceOf(staker5), bonus4);
+    }
+
+    function _setup(uint256 rewards) internal {
+        vm.startPrank(sponsor);
+        deal.configure("desc", block.timestamp + 2 weeks, 50e8, 100e8, address(0));
+        deal.setRewardToken(address(rewardToken));
+        deal.setMultiplier(5e18);
+        rewardToken.approve(address(deal), 10000e12);
+        if(rewards > 0) deal.transferRewards(rewards);
+        vm.stopPrank();
     }
 
     function _stake(address staker, uint256 amount_) internal {
