@@ -593,19 +593,19 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @dev K1, K2, constants
      */
     function getRewardsOf(uint256 tokenId, uint256 maximum) public view returns(uint256) {
-        if (tokenId >= _tokenId || multiplier == 0 || distributionAmount == 0)
-            return 0;
+        if (tokenId >= _tokenId) return 0;
 
-        uint256 T = distributionAmount;
         uint256 L = stakedAmount[tokenId];
-        if(T == 0 || L == 0) return 0;
-
-        uint256 S = _totalStaked(tokenId);
-        uint X = S - L;
-        uint C = maximum;
+        uint256 T = distributionAmount;
         uint256 M = multiplier;
+        uint256 C = maximum;
 
-        if (S > C) { // case: dealMaximum was reached - calculate bonus for the rest
+        if(T == 0 || L == 0 || M == 0) return 0;
+        
+        uint256 S = _totalStaked(tokenId);
+        uint256 X = S - L;
+
+        if (S > C) { // dealMaximum was reached - calculate bonus for a partial stake
             L = C > X ? C - X : 0;
         }
 
@@ -614,7 +614,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         uint256 k2 = C * 1e18 / (M - 1e18); // ends up with escrow decimals
         uint256 k3 = 1e18 + (L * 1e18 / (X + k2)); // ends up with precision 1e18
 
-        uint256 result = k1 * intoUint256(ln(ud(k3))) / 1e18;
+        uint256 result = k1 * intoUint256(ln(ud(k3))) / 1e18; // result has reward token decimals
         return result;
     }
 
