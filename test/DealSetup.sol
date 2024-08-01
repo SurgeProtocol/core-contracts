@@ -30,9 +30,10 @@ contract DealSetup is Test {
         staker1 = vm.addr(3);
         staker2 = vm.addr(4);
 
-        escrowToken = new ERC20PresetFixedSupply("escrow", "escrow", 2000000, address(this));
+        escrowToken = new ERC20PresetFixedSupply("escrow", "escrow", 5000000, address(this));
         escrowToken.transfer(address(staker1), amount);
         escrowToken.transfer(address(staker2), amount);
+        escrowToken.transfer(address(sponsor), amount*3);
 
         ERC6551Registry registry = new ERC6551Registry();
         Multicall3 forwarder = new Multicall3();
@@ -81,5 +82,14 @@ contract DealSetup is Test {
     function _activate() internal {
         vm.prank(sponsor);
         deal.activate();
+    }
+
+    function _transferRewards() internal {
+        vm.startPrank(sponsor);
+        deal.setRewardToken(address(escrowToken));
+        deal.setMultiplier(5e18);
+        escrowToken.approve(address(deal), amount*3);
+        deal.transferRewards(amount*3);
+        vm.stopPrank();
     }
 }

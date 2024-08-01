@@ -58,6 +58,7 @@ contract DealNFTWhitelistsTest is Test, DealSetup {
     }
 
     function test_SkipsUnqualifiedClaims() public {
+        _transferRewards();
         vm.prank(sponsor);
         deal.setClaimsWhitelist(address(whitelist));
 

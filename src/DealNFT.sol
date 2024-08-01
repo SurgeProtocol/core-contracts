@@ -13,9 +13,6 @@ import {IDealNFT} from "./interfaces/IDealNFT.sol";
 import {IWhitelist} from "./interfaces/IWhitelist.sol";
 import {UD60x18, ud, ln, intoUint256} from "prb/UD60x18.sol";
 
-import "forge-std/console.sol";
-
-
 /**
  * @title DealNFT
  * @notice Contract for managing NFT-based deals
@@ -154,7 +151,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         require(arbitrator == ADDRESS_ZERO || claimApproved, "claim not approved");
         require(_claimId < _tokenId, "token id out of bounds");
         require(state() == State.Claiming, "not in closing week");
-        require(_totalStaked(_tokenId-1) >= dealMinimum, "minimum stake not reached");
+        require(_totalStaked(_tokenId) >= dealMinimum, "minimum stake not reached");
         _;
     }
 
@@ -165,7 +162,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         require(state() < State.Closed, "cannot configure anymore");
 
         if(state() == State.Claiming) {
-            require(_totalStaked(_tokenId-1) < dealMinimum, "minimum stake reached");
+            require(_totalStaked(_tokenId) < dealMinimum, "minimum stake reached");
         }
 
         _;
@@ -492,7 +489,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      */
     function claim() external nonReentrant onlySponsor canClaim {
         require(distributionAmount > 0, "no rewards to claim");
-        uint maximum = Math.min(dealMaximum, _totalStaked(_tokenId-1));
+        uint maximum = Math.min(dealMaximum, _totalStaked(_tokenId));
         while(_claimId < _tokenId) {
             _claimNext(maximum);
         }
@@ -503,7 +500,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      */
     function claimNext() external nonReentrant onlySponsor canClaim {
         require(distributionAmount > 0, "no rewards to claim");
-         uint maximum = Math.min(dealMaximum, _totalStaked(_tokenId-1));
+         uint maximum = Math.min(dealMaximum, _totalStaked(_tokenId));
         _claimNext(maximum);
     }
 
@@ -563,7 +560,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @notice Get the total amount of tokens staked in the deal
      */
     function totalStaked() external view returns (uint256) {
-        return _totalStaked(_tokenId-1);
+        return _totalStaked(_tokenId);
     }
 
     /**
@@ -658,7 +655,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @notice Check if all tokens have been claimed by the sponsor
      */
     function _isClaimed() private view returns (bool) {
-        return totalClaimed > 0 && (totalClaimed >= dealMaximum || totalClaimed >= _totalStaked(_tokenId-1));
+        return totalClaimed > 0 && (totalClaimed >= dealMaximum || totalClaimed >= _totalStaked(_tokenId));
     }
 
     /**
@@ -705,6 +702,9 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @notice Get the total amount of tokens staked in the deal
      */
     function _totalStaked(uint256 limit) internal view returns (uint256 total) {
+        if(_tokenId == 0) return 0;
+        if(limit >= _tokenId) limit = _tokenId - 1;
+
         for(uint256 i = 0; i <= limit; i++) {
             address staker = ownerOf(i);
             if(address(claimsWhitelist) == ADDRESS_ZERO || claimsWhitelist.canClaim(staker)) {

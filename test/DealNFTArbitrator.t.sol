@@ -13,6 +13,7 @@ contract DealNFTClaimTest is Test, DealSetup {
         _setup();
         _configure();
         _activate();
+        _transferRewards();
 
         arbitrator = vm.addr(9);
 
