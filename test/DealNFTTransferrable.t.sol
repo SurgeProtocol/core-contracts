@@ -16,7 +16,7 @@ contract DealNFTTransferTest is Test, DealSetup {
 
     function test_TransferNFT() public {
         vm.expectEmit(address(deal));
-        emit DealNFT.Transferable(sponsor, true);
+        emit DealNFT.Transferable(true);
 
         vm.prank(sponsor);
         deal.setTransferable(true);

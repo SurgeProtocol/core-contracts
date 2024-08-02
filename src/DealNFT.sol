@@ -24,16 +24,12 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     using SafeERC20 for IERC20Metadata;
 
     // Events
-    event Deal(address indexed sponsor, string name, string symbol);
-    event Setup(address sponsor, address escrowToken, uint256 closingDelay, uint256 unstakingFee, string web, string twitter, string image);
-    event Activate(address indexed sponsor);
-    event Configure(address indexed sponsor, string description, uint256 closingTime, uint256 dealMinimum, uint256 dealMaximum, address arbitrator);
-    event Transferable(address indexed sponsor, bool transferable);
-    event ClaimApproved(address indexed sponsor, address arbitrator);
+    event Setup(address escrowToken, uint256 closingDelay, uint256 unstakingFee, string web, string twitter, string image, State state);
+    event Configure(string description, uint256 closingTime, uint256 dealMinimum, uint256 dealMaximum, address arbitrator, State state);
+    event Transferable(bool transferable);
     event SetStakersWhitelist(address whitelist);
     event SetClaimsWhitelist(address whitelist);
-    event Cancel(address indexed sponsor);
-    event Claim(address indexed sponsor, address indexed staker, uint256 tokenId, uint256 amount);
+    event Claim(address indexed staker, uint256 tokenId, uint256 amount);
     event Stake(address indexed staker, address tokenBoundAccount, uint256 tokenId, uint256 amount);
     event Unstake(address indexed staker, address tokenBoundAccount, uint256 tokenId, uint256 amount);
     event Recover(address indexed staker, address tokenBoundAccount, uint256 tokenId, uint256 amount);
@@ -43,60 +39,55 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     event ClosingTimeUpdated(uint256 indexed closingTime);
     event DealRangeUpdated(uint256 indexed dealMinimum, uint256 indexed dealMaximum);
     event ArbitratorUpdated(address indexed arbitrator);
+    event StateUpdated(State state);
 
     // Enum for deal states
     enum State { Setup, Active, Claiming, Closed, Canceled }
 
-    uint256 public constant CLAIMING_PERIOD = 1 weeks;
-    uint256 public constant CLAIMING_FEE = 3e4; // 3%
-    uint256 private constant MAX_CLOSING_RANGE = 52 weeks;
     uint256 private constant MAX_FEE = 1e5;
     uint256 private constant PRECISION = 1e6;
     address private constant ADDRESS_ZERO = address(0);
 
-    // Private state variables
-    uint256 private _tokenId;
-    uint256 private _claimId;
     bool private _canceled;
     bool private _active;
-
-    // Constructor parameters
-    IERC6551Registry private immutable _registry;
-    address private immutable _implementation;
-    string private _base;
-    address public immutable sponsor;
-    address public immutable treasury;
-
-    // Setup parameters
-    IERC20Metadata public escrowToken;
-    IERC20Metadata public rewardToken;
-    uint256 public closingDelay;
-    uint256 public unstakingFee;
-    string public website;
-    string public twitter;
-    string public image;
-
-    // Configuration parameters
-    string public description;
-    uint256 public closingTime;
-    uint256 public dealMinimum;
-    uint256 public dealMaximum;
-    address public arbitrator;
-    uint256 public multiplier;
-    uint256 public distributionAmount;
-
     bool public transferable;
     bool public claimApproved;
 
-    // Deal statistics
+    address public immutable sponsor;
+    address public immutable treasury;
+    IERC6551Registry private immutable _registry;
+    address private immutable _implementation;
+    address public arbitrator;
+
+    uint256 private _tokenId;
+    uint256 private _claimId;
+    uint256 public closingDelay;
+    uint256 public unstakingFee;
+    uint256 public closingTime;
+    uint256 public dealMinimum;
+    uint256 public dealMaximum;
+    uint256 public multiplier;
+    uint256 public distributionAmount;
     uint256 public totalClaimed;
+
+    IERC20Metadata public escrowToken;
+    IERC20Metadata public rewardToken;
+    IWhitelist public stakersWhitelist;
+    IWhitelist public claimsWhitelist;
+
+    string private _base;
+    string public website;
+    string public twitter;
+    string public image;
+    string public description;
+
+    uint256 public constant CLAIMING_PERIOD = 1 weeks;
+    uint256 public constant CLAIMING_FEE = 3e4; // 3%
+    uint256 private constant MAX_CLOSING_RANGE = 52 weeks;
+
     mapping(uint256 tokenId => uint256) public stakedAmount;
     mapping(uint256 tokenId => uint256) public claimedAmount;
     mapping(address staker => uint256) public stakes;
-
-    // Whitelists
-    IWhitelist public stakersWhitelist;
-    IWhitelist public claimsWhitelist;
 
     struct StakeData {
         address owner;
@@ -139,43 +130,6 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         treasury = treasury_;
 
         _base = string.concat(baseURI_, "/chain/", block.chainid.toString(), "/deal/", address(this).toHexString(), "/token/");
-
-        emit Deal(sponsor, name_, symbol_);
-    }
-
-
-    /**
-     * @notice modifier to check claim requirements
-     */
-    modifier canClaim() {
-        require(arbitrator == ADDRESS_ZERO || claimApproved, "claim not approved");
-        require(_claimId < _tokenId, "token id out of bounds");
-        require(state() == State.Claiming, "not in closing week");
-        require(_totalStaked(_tokenId) >= dealMinimum, "minimum stake not reached");
-        _;
-    }
-
-    /**
-     * @notice Modifier to check the deal can be configured
-     */
-    modifier canConfigure() {
-        require(state() < State.Closed, "cannot configure anymore");
-
-        if(state() == State.Claiming) {
-            require(_totalStaked(_tokenId) < dealMinimum, "minimum stake reached");
-        }
-
-        _;
-    }
-
-    /**
-     * @notice Modifier to check the closing time is valid
-     * @param closingTime_ The closing time to check
-     */
-    modifier validClosingTime(uint256 closingTime_) {
-        require(closingTime_ == 0 || closingTime_ >= block.timestamp + closingDelay, "invalid closing time");
-        require(closingTime_ <= block.timestamp + MAX_CLOSING_RANGE, "invalid closing time");
-        _;
     }
 
     /**
@@ -227,7 +181,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         string memory website_,
         string memory twitter_,
         string memory image_
-    ) external nonReentrant onlySponsor {
+    ) external onlySponsor {
         require(state() == State.Setup, "cannot setup anymore");
 
         escrowToken = IERC20Metadata(escrowToken_);
@@ -237,14 +191,15 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         twitter = twitter_;
         image = image_;
 
-        emit Setup(sponsor, address(escrowToken), closingDelay, unstakingFee, website, twitter, image);
+        emit Setup(address(escrowToken), closingDelay, unstakingFee, website, twitter, image, State.Setup);
     }
 
     /**
      * @notice Set the sponsor's website
      * @param website_ The website URL
      */
-    function setWeb(string memory website_) external nonReentrant onlySponsor canConfigure {
+    function setWeb(string memory website_) external onlySponsor {
+        _canConfigure();
         website = website_;
         emit WebsiteUpdated(website_);
     }
@@ -253,7 +208,8 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @notice Set the sponsor's Twitter handle
      * @param twitter_ The Twitter handle
      */
-    function setTwitter(string memory twitter_) external nonReentrant onlySponsor canConfigure {
+    function setTwitter(string memory twitter_) external onlySponsor {
+        _canConfigure();
         twitter = twitter_;
         emit TwitterUpdated(twitter_);
     }
@@ -262,7 +218,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @notice Activates the deal
      * @dev requires all setup parameters to be set
      */
-    function activate() external nonReentrant onlySponsor {
+    function activate() external onlySponsor {
         require(address(escrowToken) != ADDRESS_ZERO, "sponsor cannot be zero");
         require(closingDelay > 0, "closing delay cannot be zero");
         require(closingDelay < MAX_CLOSING_RANGE, "closing delay too big");
@@ -273,7 +229,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
 
         _active = true;
 
-        emit Activate(sponsor);
+        emit StateUpdated(State.Active);
     }
 
     /**
@@ -289,7 +245,9 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         uint256 dealMinimum_,
         uint256 dealMaximum_,
         address arbitrator_
-    ) external nonReentrant onlySponsor canConfigure validClosingTime(closingTime_) {
+    ) external onlySponsor {
+        _canConfigure();
+        _validClosingTime(closingTime_);
         require(dealMinimum_ <= dealMaximum_, "wrong deal range");
 
         description = description_;
@@ -298,14 +256,15 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         dealMaximum = dealMaximum_;
         arbitrator = arbitrator_;
 
-        emit Configure(sponsor, description, closingTime, dealMinimum, dealMaximum, arbitrator);
+        emit Configure(description, closingTime, dealMinimum, dealMaximum, arbitrator, State.Active);
     }
 
     /**
      * @notice Set the description of the deal
      * @param description_ The description of the deal
      */
-    function setDescription(string memory description_) external nonReentrant onlySponsor canConfigure {
+    function setDescription(string memory description_) external onlySponsor {
+        _canConfigure();
         description = description_;
         emit DescriptionUpdated(description_);
     }
@@ -314,9 +273,9 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @notice Set the closing time of the deal
      * @param closingTime_ The closing time of the deal
      */
-    function setClosingTime(uint256 closingTime_) external 
-        nonReentrant onlySponsor canConfigure validClosingTime(closingTime_)
-    {
+    function setClosingTime(uint256 closingTime_) external onlySponsor {
+        _canConfigure();
+        _validClosingTime(closingTime_);
         closingTime = closingTime_;
         emit ClosingTimeUpdated(closingTime_);
     }
@@ -326,7 +285,8 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @param dealMinimum_ The minimum amount of tokens required for the deal
      * @param dealMaximum_ The maximum amount of tokens allowed for the deal
      */
-    function setDealRange(uint256 dealMinimum_, uint256 dealMaximum_) external nonReentrant onlySponsor canConfigure {
+    function setDealRange(uint256 dealMinimum_, uint256 dealMaximum_) external onlySponsor {
+        _canConfigure();
         require(dealMinimum_ <= dealMaximum_, "wrong deal range");
         dealMinimum = dealMinimum_;
         dealMaximum = dealMaximum_;
@@ -337,7 +297,8 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @notice Set the arbitrator of the deal
      * @param arbitrator_ The address of the arbitrator
      */
-    function setArbitrator(address arbitrator_) external nonReentrant onlySponsor canConfigure {
+    function setArbitrator(address arbitrator_) external onlySponsor {
+        _canConfigure();
         arbitrator = arbitrator_;
         emit ArbitratorUpdated(arbitrator_);
     }
@@ -347,7 +308,8 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @param multiplier_ The multiplier of the reward tokens
      * @dev multiplier is in 1e6 precision
      */
-    function setMultiplier(uint256 multiplier_) external nonReentrant onlySponsor canConfigure {
+    function setMultiplier(uint256 multiplier_) external onlySponsor {
+        _canConfigure();
         multiplier = multiplier_;
     }
 
@@ -373,7 +335,8 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @notice Set the reward token
      * @param rewardToken_ The address of the reward token
      */
-    function setRewardToken(address rewardToken_) external nonReentrant onlySponsor {
+    function setRewardToken(address rewardToken_) external onlySponsor {
+        require(address(rewardToken_) != ADDRESS_ZERO, "reward token cannot be zero");
         rewardToken = IERC20Metadata(rewardToken_);
     }
 
@@ -381,27 +344,26 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @notice Set whether the NFTs are transferable or not
      * @param transferable_ Boolean indicating if NFTs are transferable
      */
-    function setTransferable(bool transferable_) external nonReentrant onlySponsor {
+    function setTransferable(bool transferable_) external onlySponsor {
         require(state() != State.Canceled, "cannot be changed anymore");
         require(!_afterClosed(), "cannot be changed anymore");
 
         transferable = transferable_;
-        emit Transferable(sponsor, transferable_);
+        emit Transferable(transferable_);
     }
 
     /**
      * @notice Approve the claim of the deal
      */
-    function approveClaim() external nonReentrant onlyArbitrator {
+    function approveClaim() external onlyArbitrator {
         claimApproved = true;
-        emit ClaimApproved(sponsor, arbitrator);
     }
 
     /**
      * @notice configure whitelists for staking
      * @param whitelist_ enable whitelisting on stakes
      */
-    function setStakersWhitelist(address whitelist_) external nonReentrant onlySponsor {
+    function setStakersWhitelist(address whitelist_) external onlySponsor {
         stakersWhitelist = IWhitelist(whitelist_);
         emit SetStakersWhitelist(whitelist_);
     }
@@ -410,7 +372,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @notice configure whitelists for claming
      * @param whitelist_ enable whitelisting on claim
      */
-    function setClaimsWhitelist(address whitelist_) external nonReentrant onlySponsor {
+    function setClaimsWhitelist(address whitelist_) external onlySponsor {
         claimsWhitelist = IWhitelist(whitelist_);
         emit SetClaimsWhitelist(whitelist_);
     }
@@ -418,10 +380,10 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     /**
      * @notice Cancel the deal
      */
-    function cancel() external nonReentrant onlySponsorOrArbitrator {
+    function cancel() external onlySponsorOrArbitrator {
         require(state() <= State.Active, "cannot be canceled");
         _canceled = true;
-        emit Cancel(sponsor);
+        emit StateUpdated(State.Canceled);
     }
 
     /**
@@ -487,18 +449,21 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     /**
      * @notice Claim tokens from the deal
      */
-    function claim() external nonReentrant onlySponsor canClaim {
+    function claim() external nonReentrant onlySponsor {
+        _canClaim();
         uint maximum = Math.min(dealMaximum, _totalStaked(_tokenId));
         while(_claimId < _tokenId) {
             _claimNext(maximum);
         }
+        emit StateUpdated(State.Closed);
     }
 
     /**
      * @notice Claim the next token id from the deal
      */
-    function claimNext() external nonReentrant onlySponsor canClaim {
-         uint maximum = Math.min(dealMaximum, _totalStaked(_tokenId));
+    function claimNext() external nonReentrant onlySponsor {
+        _canClaim();
+        uint maximum = Math.min(dealMaximum, _totalStaked(_tokenId));
         _claimNext(maximum);
     }
 
@@ -533,7 +498,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
             tokenBoundAccount.send(sponsor, amount - fee);
             tokenBoundAccount.send(treasury, fee);
 
-            emit Claim(sponsor, staker, tokenId, amount);
+            emit Claim(staker, tokenId, amount);
         }
     }
 
@@ -711,5 +676,34 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
                 total += stakedAmount[i];
             }
         }
+    }
+
+    /**
+     * @notice Function to check claim requirements
+     */
+    function _canClaim() internal view {
+        require(arbitrator == ADDRESS_ZERO || claimApproved, "claim not approved");
+        require(_claimId < _tokenId, "token id out of bounds");
+        require(state() == State.Claiming, "not in closing week");
+        require(_totalStaked(_tokenId) >= dealMinimum, "minimum stake not reached");
+    }
+
+    /**
+     * @notice Function to check the deal can be configured
+     */
+    function _canConfigure() internal view {
+        require(state() < State.Closed, "cannot configure anymore");
+        if(state() == State.Claiming) {
+            require(_totalStaked(_tokenId) < dealMinimum, "minimum stake reached");
+        }
+    }
+
+    /**
+     * @notice Function to check the closing time is valid
+     * @param closingTime_ The closing time to check
+     */
+    function _validClosingTime(uint256 closingTime_) internal view {
+        require(closingTime_ == 0 || closingTime_ >= block.timestamp + closingDelay, "invalid closing time");
+        require(closingTime_ <= block.timestamp + MAX_CLOSING_RANGE, "invalid closing time");
     }
 }

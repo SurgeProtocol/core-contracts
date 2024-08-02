@@ -111,9 +111,9 @@ contract DealNFTClaimTest is Test {
         assertEq(uint256(deal.state()), uint256(DealNFT.State.Claiming));
 
         vm.expectEmit(address(deal));
-        emit DealNFT.Claim(sponsor, staker1, 0, amount);
+        emit DealNFT.Claim(staker1, 0, amount);
         vm.expectEmit(address(deal));
-        emit DealNFT.Claim(sponsor, staker2, 1, 50e8);
+        emit DealNFT.Claim(staker2, 1, 50e8);
 
         vm.prank(sponsor);
         deal.claim();
