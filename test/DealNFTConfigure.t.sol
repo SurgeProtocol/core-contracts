@@ -139,4 +139,36 @@ contract DealNFTConfigureTest is Test, DealSetup {
         vm.expectRevert("minimum stake reached");
         _configure();
     }
+
+    function test_RevertWhen_SetMultiplierNotSponsor() public {
+        vm.expectRevert("not the sponsor");
+        vm.prank(staker1);
+        deal.setMultiplier(2);
+    }
+
+    function test_RevertWhen_SetMultiplierWithClosedState() public {
+        _setup();
+        _configure();
+        _activate();
+
+        _stake(staker1);
+        skip(23 days);
+
+        vm.expectRevert("cannot configure anymore");
+        vm.prank(sponsor);
+        deal.setMultiplier(2);
+    }
+
+    function test_RevertWhen_SetMultiplierWithClamingState() public {
+        _setup();
+        _configure();
+        _activate();
+
+        _stake(staker1);
+        skip(17 days);
+
+        vm.expectRevert("minimum stake reached");
+        vm.prank(sponsor);
+        deal.setMultiplier(2);
+    }
 }

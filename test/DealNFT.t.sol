@@ -58,12 +58,12 @@ contract DealNFTTest is Test, DealSetup {
         assertEq(deal.stakedAmount(tokenId), 0);
         assertEq(escrowToken.balanceOf(staker1), 950000);
         assertEq(escrowToken.balanceOf(address(deal.getTokenBoundAccount(tokenId))), 0);
-        assertEq(escrowToken.balanceOf(sponsor), 25000);
         assertEq(escrowToken.balanceOf(treasury), 25000);
         assertEq(deal.totalStaked(), 0);
     }
 
     function test_Claim() public {
+        _transferRewards();
         _stake(staker1);
         assertEq(uint256(deal.state()), uint256(DealNFT.State.Active));
 
@@ -71,7 +71,7 @@ contract DealNFTTest is Test, DealSetup {
         assertEq(uint256(deal.state()), uint256(DealNFT.State.Claiming));
 
         vm.expectEmit(address(deal));
-        emit DealNFT.Claim(sponsor, staker1, tokenId, amount);
+        emit DealNFT.Claim(staker1, tokenId, amount);
 
         vm.prank(sponsor);
         deal.claim();

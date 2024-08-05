@@ -13,9 +13,6 @@ contract DealNFTCancelTest is Test, DealSetup {
     }
 
     function test_CancelBySponsor() public {
-        vm.expectEmit(address(deal));
-        emit DealNFT.Cancel(sponsor);
-
         vm.prank(sponsor);
         deal.cancel();
         assertEq(uint256(deal.state()), uint256(DealNFT.State.Canceled));
@@ -25,9 +22,6 @@ contract DealNFTCancelTest is Test, DealSetup {
         address arbitrator = vm.addr(5);
         vm.prank(sponsor);
         deal.configure("desc", block.timestamp + 2 weeks, 0, 2000000, arbitrator);
-
-        vm.expectEmit(address(deal));
-        emit DealNFT.Cancel(sponsor);
 
         vm.prank(arbitrator);
         deal.cancel();
