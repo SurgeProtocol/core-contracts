@@ -33,9 +33,9 @@ contract DealNFTWhitelistsTest is Test, DealSetup {
 
     function test_RevertWhen_SetWhitelistsWithWrongSender() public {
         vm.prank(staker1);
-        vm.expectRevert("not the sponsor");
+        vm.expectRevert("only sponsor");
         deal.setStakersWhitelist(address(whitelist));
-        vm.expectRevert("not the sponsor");
+        vm.expectRevert("only sponsor");
         deal.setClaimsWhitelist(address(whitelist));
     }
 

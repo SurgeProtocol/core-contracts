@@ -95,7 +95,7 @@ contract DealNFTConfigureTest is Test, DealSetup {
     }
 
     function test_RevertWhen_ConfigureWithWrongSender() public {
-        vm.expectRevert("not the sponsor");
+        vm.expectRevert("only sponsor");
         vm.prank(staker1);
         deal.configure("a", block.timestamp + 2 weeks, 0, 1000, address(0));
     }
@@ -123,7 +123,7 @@ contract DealNFTConfigureTest is Test, DealSetup {
         _configure();
         _activate();
         skip(4 weeks);
-        vm.expectRevert("cannot configure anymore");
+        vm.expectRevert("cannot configure");
         _configure();
     }
 
@@ -141,7 +141,7 @@ contract DealNFTConfigureTest is Test, DealSetup {
     }
 
     function test_RevertWhen_SetMultiplierNotSponsor() public {
-        vm.expectRevert("not the sponsor");
+        vm.expectRevert("only sponsor");
         vm.prank(staker1);
         deal.setMultiplier(2);
     }
@@ -154,7 +154,7 @@ contract DealNFTConfigureTest is Test, DealSetup {
         _stake(staker1);
         skip(23 days);
 
-        vm.expectRevert("cannot configure anymore");
+        vm.expectRevert("cannot configure");
         vm.prank(sponsor);
         deal.setMultiplier(2);
     }

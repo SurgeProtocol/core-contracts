@@ -14,7 +14,7 @@ contract DealNFTClaimTest is Test, DealSetup {
     }
 
     function test_RevertWhen_ClaimNotSponsor() public {
-        vm.expectRevert("not the sponsor");
+        vm.expectRevert("only sponsor");
         vm.prank(staker1);
         deal.claim();
     }
@@ -79,19 +79,19 @@ contract DealNFTClaimTest is Test, DealSetup {
     }
 
     function test_RevertWhen_SetRewardTokenNotSponsor() public {
-        vm.expectRevert("not the sponsor");
+        vm.expectRevert("only sponsor");
         vm.prank(staker1);
         deal.setRewardToken(address(0));
     }
 
     function test_RevertWhen_TransferRewardsNotSponsor() public {
-        vm.expectRevert("not the sponsor");
+        vm.expectRevert("only sponsor");
         vm.prank(staker1);
         deal.transferRewards(1);
     }
 
     function test_RevertWhen_RecoverRewardsNotSponsor() public {
-        vm.expectRevert("not the sponsor");
+        vm.expectRevert("only sponsor");
         vm.prank(staker1);
         deal.recoverRewards();
     }

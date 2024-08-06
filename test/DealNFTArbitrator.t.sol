@@ -35,7 +35,7 @@ contract DealNFTClaimTest is Test, DealSetup {
     }
 
     function test_RevertWhen_ApproveClaimNotArbitrator() public {
-        vm.expectRevert("not the arbitrator");
+        vm.expectRevert("only arbitrator");
         vm.prank(staker1);
         deal.approveClaim();
     }

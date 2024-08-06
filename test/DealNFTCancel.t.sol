@@ -29,7 +29,7 @@ contract DealNFTCancelTest is Test, DealSetup {
     }
 
     function test_RevertWhen_CancelWrongSponsorOrArbitrator() public {
-        vm.expectRevert("not the sponsor or arbitrator");
+        vm.expectRevert("only sponsor or arbitrator");
         vm.prank(staker1);
         deal.cancel();
     }

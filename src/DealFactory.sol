@@ -22,9 +22,9 @@ contract DealFactory {
         address treasury_,
         string memory baseURI_
     ) {
-        require(registry_ != address(0), "registry is the zero address");
-        require(implementation_ != address(0), "implementation is the zero address");
-        require(treasury_ != address(0), "treasury is the zero address");
+        require(registry_ != address(0), "registry is zero");
+        require(implementation_ != address(0), "implementation is zero");
+        require(treasury_ != address(0), "treasury is zero");
         require(bytes(baseURI_).length > 0, "baseURI is empty");
 
         _active = true;
@@ -40,8 +40,8 @@ contract DealFactory {
         string memory name_,
         string memory symbol_
     ) external returns (address)  {
-        require(_active, "factory has been turned off");
-        require(sponsor_ != address(0), "sponsor is the zero address");
+        require(_active, "turned off");
+        require(sponsor_ != address(0), "sponsor is zero");
         require(bytes(name_).length > 0, "name is empty");
         require(bytes(symbol_).length > 0, "symbol is empty");
 
@@ -61,7 +61,7 @@ contract DealFactory {
     }
 
     function turnOff() external {
-        require(msg.sender == _owner, "only owner can turn off");
+        require(msg.sender == _owner, "only owner");
         _active = false;
     }
 }

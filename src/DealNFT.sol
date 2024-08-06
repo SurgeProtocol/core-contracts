@@ -116,13 +116,13 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         string memory symbol_,
         string memory baseURI_
     ) ERC721(name_, symbol_) {
-        require(registry_ != ADDRESS_ZERO, "registry cannot be zero");
-        require(implementation_ != ADDRESS_ZERO, "implementation cannot be zero");
-        require(sponsor_ != ADDRESS_ZERO, "sponsor cannot be zero");
-        require(treasury_ != ADDRESS_ZERO, "treasury cannot be zero");
-        require(bytes(name_).length > 0, "name cannot be empty");
-        require(bytes(symbol_).length > 0, "symbol cannot be empty");
-        require(bytes(baseURI_).length > 0, "baseURI cannot be empty");
+        require(registry_ != ADDRESS_ZERO, "registry is zero");
+        require(implementation_ != ADDRESS_ZERO, "implementation is zero");
+        require(sponsor_ != ADDRESS_ZERO, "sponsor is zero");
+        require(treasury_ != ADDRESS_ZERO, "treasury is zero");
+        require(bytes(name_).length > 0, "name is empty");
+        require(bytes(symbol_).length > 0, "symbol is empty");
+        require(bytes(baseURI_).length > 0, "baseURI is empty");
 
         _registry = IERC6551Registry(registry_);
         _implementation = implementation_;
@@ -137,7 +137,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @notice Modifier to check the caller is the sponsor
      */
     modifier onlySponsor() {
-        require(msg.sender == sponsor, "not the sponsor");
+        require(msg.sender == sponsor, "only sponsor");
         _;
     }
 
@@ -145,7 +145,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @notice Modifier to check the caller is the arbitrator
      */
     modifier onlyArbitrator() {
-        require(msg.sender == arbitrator, "not the arbitrator");
+        require(msg.sender == arbitrator, "only arbitrator");
         _;
     }
 
@@ -154,7 +154,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @param tokenId The ID of the NFT
      */
     modifier onlyTokenOwner(uint256 tokenId) {
-        require(msg.sender == ownerOf(tokenId), "not the nft owner");
+        require(msg.sender == ownerOf(tokenId), "only nft owner");
         _;
     }
 
@@ -162,7 +162,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @notice Modifier to check the caller is the sponsor or arbitrator
      */
     modifier onlySponsorOrArbitrator() {
-        require(msg.sender == sponsor || msg.sender == arbitrator, "not the sponsor or arbitrator");
+        require(msg.sender == sponsor || msg.sender == arbitrator, "only sponsor or arbitrator");
         _;
     }
 
@@ -183,7 +183,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         string memory twitter_,
         string memory image_
     ) external onlySponsor {
-        require(state() == State.Setup, "cannot setup anymore");
+        require(state() == State.Setup, "cannot setup");
 
         escrowToken = IERC20Metadata(escrowToken_);
         closingDelay = closingDelay_;
@@ -220,13 +220,13 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @dev requires all setup parameters to be set
      */
     function activate() external onlySponsor {
-        require(address(escrowToken) != ADDRESS_ZERO, "sponsor cannot be zero");
-        require(closingDelay > 0, "closing delay cannot be zero");
+        require(address(escrowToken) != ADDRESS_ZERO, "sponsor is zero");
+        require(closingDelay > 0, "closing delay is zero");
         require(closingDelay < MAX_CLOSING_RANGE, "closing delay too big");
-        require(unstakingFee <= MAX_FEE, "cannot be bigger than 10%");
-        require(bytes(website).length > 0, "web cannot be empty");
-        require(bytes(twitter).length > 0, "twitter cannot be empty");
-        require(bytes(image).length > 0, "image cannot be empty");
+        require(unstakingFee <= MAX_FEE, "is bigger than 10%");
+        require(bytes(website).length > 0, "web is empty");
+        require(bytes(twitter).length > 0, "twitter is empty");
+        require(bytes(image).length > 0, "image is empty");
 
         _active = true;
 
@@ -337,7 +337,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @param rewardToken_ The address of the reward token
      */
     function setRewardToken(address rewardToken_) external onlySponsor {
-        require(address(rewardToken_) != ADDRESS_ZERO, "reward token cannot be zero");
+        require(address(rewardToken_) != ADDRESS_ZERO, "reward token is zero");
         rewardToken = IERC20Metadata(rewardToken_);
     }
 
@@ -346,8 +346,8 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @param transferable_ Boolean indicating if NFTs are transferable
      */
     function setTransferable(bool transferable_) external onlySponsor {
-        require(state() != State.Canceled, "cannot be changed anymore");
-        require(!_afterClosed(), "cannot be changed anymore");
+        require(state() != State.Canceled, "cannot be changed");
+        require(!_afterClosed(), "cannot be changed");
 
         transferable = transferable_;
         emit Transferable(transferable_);
@@ -701,7 +701,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @notice Function to check the deal can be configured
      */
     function _canConfigure() internal view {
-        require(state() < State.Closed, "cannot configure anymore");
+        require(state() < State.Closed, "cannot configure");
         if(state() == State.Claiming) {
             require(_totalStaked(_tokenId) < dealMinimum, "minimum stake reached");
         }

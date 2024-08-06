@@ -37,7 +37,7 @@ contract DealNFTRecoverTest is Test, DealSetup {
     function test_RevertWhen_RecoverWithWrongOwner() public {
         _stake(staker1);
 
-        vm.expectRevert("not the nft owner");
+        vm.expectRevert("only nft owner");
         vm.prank(staker2);
         deal.recover(0);
     }

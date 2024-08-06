@@ -46,7 +46,7 @@ contract DealNFTClaimTest is Test, DealSetup {
     }
 
     function test_RevertWhen_SetChainMaximumNotArbitrator() public {
-        vm.expectRevert("not the arbitrator");
+        vm.expectRevert("only arbitrator");
         vm.prank(staker1);
         deal.setChainMaximum(1);
     }
