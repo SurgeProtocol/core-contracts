@@ -129,6 +129,8 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
 
         sponsor = sponsor_;
         treasury = treasury_;
+        
+        multiplier = 5e18; // defaults to 5x
 
         _base = string.concat(baseURI_, "/chain/", block.chainid.toString(), "/deal/", address(this).toHexString(), "/token/");
     }
@@ -311,6 +313,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      */
     function setMultiplier(uint256 multiplier_) external onlySponsor {
         _canConfigure();
+        require(multiplier_ > 1e18, "multiplier must be greater than 1");
         multiplier = multiplier_;
     }
 
