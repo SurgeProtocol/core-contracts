@@ -35,13 +35,13 @@ contract DealNFTClaimTest is Test, DealSetup {
     }
 
     function test_RevertWhen_ApproveClaimNotArbitrator() public {
-        vm.expectRevert("only arbitrator");
+        vm.expectRevert("SRG021");
         vm.prank(staker1);
         deal.approveClaim();
     }
 
     function test_RevertWhen_ClaimWithoutArbitratorApproval() public {
-        vm.expectRevert("claim not approved");
+        vm.expectRevert("SRG042");
         vm.prank(sponsor);
         deal.claim();
     }

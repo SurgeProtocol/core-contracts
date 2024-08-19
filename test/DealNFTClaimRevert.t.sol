@@ -14,7 +14,7 @@ contract DealNFTClaimTest is Test, DealSetup {
     }
 
     function test_RevertWhen_ClaimNotSponsor() public {
-        vm.expectRevert("only sponsor");
+        vm.expectRevert("SRG020");
         vm.prank(staker1);
         deal.claim();
     }
@@ -23,7 +23,7 @@ contract DealNFTClaimTest is Test, DealSetup {
         _stake(staker1);
         _stake(staker2);
         
-        vm.expectRevert("not in closing week");
+        vm.expectRevert("SRG044");
         vm.prank(sponsor);
         deal.claim();
     }
@@ -33,7 +33,7 @@ contract DealNFTClaimTest is Test, DealSetup {
         _stake(staker2);
         skip(22 days);
 
-        vm.expectRevert("not in closing week");
+        vm.expectRevert("SRG044");
         vm.prank(sponsor);
         deal.claim();
     }
@@ -47,7 +47,7 @@ contract DealNFTClaimTest is Test, DealSetup {
 
         assertEq(uint256(deal.state()), uint256(DealNFT.State.Canceled));
 
-        vm.expectRevert("not in closing week");
+        vm.expectRevert("SRG044");
         vm.prank(sponsor);
         deal.claim();
     }
@@ -61,7 +61,7 @@ contract DealNFTClaimTest is Test, DealSetup {
         vm.startPrank(sponsor);
         deal.claim();
         
-        vm.expectRevert("token id out of bounds");
+        vm.expectRevert("SRG043");
         deal.claimNext();
         vm.stopPrank();
     }
@@ -73,37 +73,37 @@ contract DealNFTClaimTest is Test, DealSetup {
         _stake(staker2);
         skip(15 days);
 
-        vm.expectRevert("minimum stake not reached");
+        vm.expectRevert("SRG045");
         vm.prank(sponsor);
         deal.claim();
     }
 
     function test_RevertWhen_SetRewardTokenNotSponsor() public {
-        vm.expectRevert("only sponsor");
+        vm.expectRevert("SRG020");
         vm.prank(staker1);
         deal.setRewardToken(address(0));
     }
 
     function test_RevertWhen_TransferRewardsNotSponsor() public {
-        vm.expectRevert("only sponsor");
+        vm.expectRevert("SRG020");
         vm.prank(staker1);
         deal.transferRewards(1);
     }
 
     function test_RevertWhen_RecoverRewardsNotSponsor() public {
-        vm.expectRevert("only sponsor");
+        vm.expectRevert("SRG020");
         vm.prank(staker1);
         deal.recoverRewards();
     }
 
     function test_RevertWhen_StateIsNotClosed() public {
-        vm.expectRevert("cannot recover rewards");
+        vm.expectRevert("SRG033");
         vm.prank(sponsor);
         deal.recoverRewards();
     }
 
     function test_RevertWhen_RewardsTokenNotSet() public {
-        vm.expectRevert("reward token not set");
+        vm.expectRevert("SRG014");
         vm.prank(sponsor);
         deal.transferRewards(1);
     }

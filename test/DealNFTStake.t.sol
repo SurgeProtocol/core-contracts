@@ -45,7 +45,7 @@ contract DealNFTStakeTest is Test, DealSetup {
     function test_RevertWhen_StakeBeforeActive() public {
 
         assertEq(uint256(deal.state()), uint256(DealNFT.State.Setup));
-        vm.expectRevert("not an active deal");
+        vm.expectRevert("SRG036");
         vm.prank(staker1);
         deal.stake(amount);
     }
@@ -55,7 +55,7 @@ contract DealNFTStakeTest is Test, DealSetup {
 
         skip(15 days);
 
-        vm.expectRevert("not an active deal");
+        vm.expectRevert("SRG036");
         vm.prank(staker1);
         deal.stake(amount);
     }
@@ -63,7 +63,7 @@ contract DealNFTStakeTest is Test, DealSetup {
     function test_RevertWhen_StakeZero() public {
         _activate();
 
-        vm.expectRevert("invalid amount");
+        vm.expectRevert("SRG015");
         vm.prank(staker1);
         deal.stake(0);
     }
