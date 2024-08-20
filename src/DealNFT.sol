@@ -399,26 +399,19 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
 
     /**
      * @notice Stake tokens into the deal
+     * @param staker The address of the staker
+     * @param amount The amount of tokens to stake
+     */
+    function stake(address staker, uint256 amount) external nonReentrant {
+        _stake(staker, amount);
+    }
+
+    /**
+     * @notice Stake tokens into the deal
      * @param amount The amount of tokens to stake
      */
     function stake(uint256 amount) external nonReentrant {
-        require(state() == State.Active, "not an active deal");
-        require(amount > 0, "invalid amount");
-        uint256 currentStake = stakes[msg.sender] + amount;
-
-        if(address(stakersWhitelist) != ADDRESS_ZERO){
-            require(stakersWhitelist.canStake(msg.sender, currentStake), "whitelist error");
-        }
-
-        uint256 newTokenId = _tokenId++;
-        stakedAmount[newTokenId] = amount;
-        stakes[msg.sender] = currentStake;
-
-        _safeMint(msg.sender, newTokenId);
-        address newAccount = _createTokenBoundAccount(newTokenId);
-        escrowToken.safeTransferFrom(msg.sender, newAccount, amount);
-
-        emit Stake(msg.sender, newAccount, newTokenId, amount);
+        _stake(msg.sender, amount);
     }
 
     /**
@@ -612,11 +605,11 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     /**
      * @notice Create an account bound to the NFT
      */
-    function _createTokenBoundAccount(uint256 tokenId) private returns(address) {
+    function _createTokenBoundAccount(address staker, uint256 tokenId) private returns(address) {
         bytes32 salt = bytes32(abi.encode(0));
         address payable walletAddress = payable(_registry.createAccount(_implementation, salt, block.chainid, address(this), tokenId));
         AccountV3TBD newAccount = AccountV3TBD(walletAddress);
-        require(newAccount.owner() == msg.sender, "owner mismatch");
+        require(newAccount.owner() == staker, "owner mismatch");
 
         return walletAddress;
     }
@@ -717,5 +710,25 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     function _validClosingTime(uint256 closingTime_) internal view {
         require(closingTime_ == 0 || closingTime_ >= block.timestamp + closingDelay, "invalid closing time");
         require(closingTime_ <= block.timestamp + MAX_CLOSING_RANGE, "invalid closing time");
+    }
+
+    function _stake(address staker, uint256 amount) internal {
+        require(state() == State.Active, "not an active deal");
+        require(amount > 0, "invalid amount");
+        uint256 currentStake = stakes[staker] + amount;
+
+        if(address(stakersWhitelist) != ADDRESS_ZERO){
+            require(stakersWhitelist.canStake(staker, currentStake), "whitelist error");
+        }
+
+        uint256 newTokenId = _tokenId++;
+        stakedAmount[newTokenId] = amount;
+        stakes[staker] = currentStake;
+
+        _safeMint(staker, newTokenId);
+        address newAccount = _createTokenBoundAccount(staker, newTokenId);
+        escrowToken.safeTransferFrom(msg.sender, newAccount, amount);
+
+        emit Stake(staker, newAccount, newTokenId, amount);
     }
 }
