@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import {Ownable} from "./utils/Ownable.sol";
 import {IDealNFT} from "./interfaces/IDealNFT.sol";
 import {SafeERC20} from "openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import {IERC20Metadata} from "openzeppelin/token/ERC20/extensions/IERC20Metadata.sol";
@@ -9,6 +9,8 @@ import {IERC20Metadata} from "openzeppelin/token/ERC20/extensions/IERC20Metadata
 contract StakingRelayer is Ownable {
     using SafeERC20 for IERC20Metadata;
     mapping(address => bool) public enabledDeals;
+
+    constructor(address owner_) Ownable(owner_) {}
 
     function stake(address dealAddress, uint256 amount) external {
         require(enabledDeals[dealAddress], "StakingRelayer: deal not allowed");

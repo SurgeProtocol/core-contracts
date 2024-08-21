@@ -14,8 +14,7 @@ contract StakingRelayerTest is Test, DealSetup {
         _configure();
         _activate();
 
-        vm.prank(treasury);
-        relayer = new StakingRelayer();
+        relayer = new StakingRelayer(treasury);
     }
 
     function test_StakeWithStakingRelayer() public {

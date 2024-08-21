@@ -14,6 +14,7 @@ contract DeployStakingRelayer is Script {
         Constants constants = new Constants();
         bytes32 salt = constants.salt();
         address factory = constants.factory();
+        address owner = constants.sponsor();
 
         address relayer = Create2.computeAddress(
             salt,
@@ -29,7 +30,7 @@ contract DeployStakingRelayer is Script {
         // Deploy StakingRelayer
         if (relayer.code.length == 0) {
             vm.startBroadcast();
-            new StakingRelayer{salt: salt}();
+            new StakingRelayer{salt: salt}(owner);
             vm.stopBroadcast();
 
             console.log("StakingRelayer:", relayer, "(deployed)");
@@ -42,7 +43,11 @@ contract DeployStakingRelayer is Script {
             "forge verify-contract --num-of-optimizations 200 --chain-id",
             block.chainid,
             relayer,
-            "src/StakingRelayer.sol:StakingRelayer"
+            string.concat(
+                "src/StakingRelayer.sol:StakingRelayer --constructor-args $(cast abi-encode \"constructor(address)\" ",
+                Strings.toHexString(owner),
+                ")\n"
+            )
         );
     }
 }
