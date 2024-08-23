@@ -16,6 +16,48 @@ import {UD60x18, ud, ln, intoUint256} from "prb/UD60x18.sol";
 /**
  * @title DealNFT
  * @notice Contract for managing NFT-based deals
+ * @dev Error codes:
+ * SRG001: registry is zero
+ * SRG002: implementation is zero
+ * SRG003: sponsor is zero
+ * SRG004: treasury is zero
+ * SRG005: name is empty
+ * SRG006: symbol is empty
+ * SRG007: baseURI is empty
+ * SRG008: closing delay is zero
+ * SRG009: closing delay is too big
+ * SRG010: closing delay is bigger than 10%
+ * SRG011: website is empty
+ * SRG012: twitter is empty
+ * SRG013: image is empty
+ * SRG014: reward token is zero
+ * SRG015: invalid amount
+ * SRG016: invalid closing time
+ *
+ * SRG020: only sponsor
+ * SRG021: only arbitrator
+ * SRG022: only token owner
+ * SRG023: only sponsor or arbitrator
+ * SRG024: owner mismatch
+ *
+ * SRG030: cannot setup
+ * SRG031: wrong deal range
+ * SRG032: multiplier must be greater than 1
+ * SRG033: cannot recover rewards
+ * SRG034: cannot be changed
+ * SRG035: cannot be canceled
+ * SRG036: not an active deal
+ * SRG037: whitelist error
+ * SRG038: cannot unstake after claiming/closed/canceled
+ * SRG039: cannot recover before closed/canceled
+ * SRG040: not transferable
+ * SRG041: whitelist error
+ * SRG042: claim not approved
+ * SRG043: token id out of bounds
+ * SRG044: not in closing week
+ * SRG045: minimum stake not reached
+ * SRG046: minimum stake reached
+ * SRG047: cannot configure
  */
 contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     using Math for uint256;
@@ -116,13 +158,13 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         string memory symbol_,
         string memory baseURI_
     ) ERC721(name_, symbol_) {
-        require(registry_ != ADDRESS_ZERO, "registry is zero");
-        require(implementation_ != ADDRESS_ZERO, "implementation is zero");
-        require(sponsor_ != ADDRESS_ZERO, "sponsor is zero");
-        require(treasury_ != ADDRESS_ZERO, "treasury is zero");
-        require(bytes(name_).length > 0, "name is empty");
-        require(bytes(symbol_).length > 0, "symbol is empty");
-        require(bytes(baseURI_).length > 0, "baseURI is empty");
+        require(registry_ != ADDRESS_ZERO, "SRG001");
+        require(implementation_ != ADDRESS_ZERO, "SRG002");
+        require(sponsor_ != ADDRESS_ZERO, "SRG003");
+        require(treasury_ != ADDRESS_ZERO, "SRG004");
+        require(bytes(name_).length > 0, "SRG005");
+        require(bytes(symbol_).length > 0, "SRG006");
+        require(bytes(baseURI_).length > 0, "SRG007");
 
         _registry = IERC6551Registry(registry_);
         _implementation = implementation_;
@@ -139,7 +181,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @notice Modifier to check the caller is the sponsor
      */
     modifier onlySponsor() {
-        require(msg.sender == sponsor, "only sponsor");
+        require(msg.sender == sponsor, "SRG020");
         _;
     }
 
@@ -147,7 +189,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @notice Modifier to check the caller is the arbitrator
      */
     modifier onlyArbitrator() {
-        require(msg.sender == arbitrator, "only arbitrator");
+        require(msg.sender == arbitrator, "SRG021");
         _;
     }
 
@@ -156,7 +198,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @param tokenId The ID of the NFT
      */
     modifier onlyTokenOwner(uint256 tokenId) {
-        require(msg.sender == ownerOf(tokenId), "only nft owner");
+        require(msg.sender == ownerOf(tokenId), "SRG022");
         _;
     }
 
@@ -164,7 +206,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @notice Modifier to check the caller is the sponsor or arbitrator
      */
     modifier onlySponsorOrArbitrator() {
-        require(msg.sender == sponsor || msg.sender == arbitrator, "only sponsor or arbitrator");
+        require(msg.sender == sponsor || msg.sender == arbitrator, "SRG023");
         _;
     }
 
@@ -185,7 +227,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         string memory twitter_,
         string memory image_
     ) external onlySponsor {
-        require(state() == State.Setup, "cannot setup");
+        require(state() == State.Setup, "SRG030");
 
         escrowToken = IERC20Metadata(escrowToken_);
         closingDelay = closingDelay_;
@@ -222,13 +264,13 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @dev requires all setup parameters to be set
      */
     function activate() external onlySponsor {
-        require(address(escrowToken) != ADDRESS_ZERO, "sponsor is zero");
-        require(closingDelay > 0, "closing delay is zero");
-        require(closingDelay < MAX_CLOSING_RANGE, "closing delay too big");
-        require(unstakingFee <= MAX_FEE, "is bigger than 10%");
-        require(bytes(website).length > 0, "web is empty");
-        require(bytes(twitter).length > 0, "twitter is empty");
-        require(bytes(image).length > 0, "image is empty");
+        require(address(escrowToken) != ADDRESS_ZERO, "SRG003");
+        require(closingDelay > 0, "SRG008");
+        require(closingDelay < MAX_CLOSING_RANGE, "SRG009");
+        require(unstakingFee <= MAX_FEE, "SRG010");
+        require(bytes(website).length > 0, "SRG011");
+        require(bytes(twitter).length > 0, "SRG012");
+        require(bytes(image).length > 0, "SRG013");
 
         _active = true;
 
@@ -251,7 +293,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     ) external onlySponsor {
         _canConfigure();
         _validClosingTime(closingTime_);
-        require(dealMinimum_ <= dealMaximum_, "wrong deal range");
+        require(dealMinimum_ <= dealMaximum_, "SRG031");
 
         description = description_;
         closingTime = closingTime_;
@@ -290,7 +332,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      */
     function setDealRange(uint256 dealMinimum_, uint256 dealMaximum_) external onlySponsor {
         _canConfigure();
-        require(dealMinimum_ <= dealMaximum_, "wrong deal range");
+        require(dealMinimum_ <= dealMaximum_, "SRG031");
         dealMinimum = dealMinimum_;
         dealMaximum = dealMaximum_;
         emit DealRangeUpdated(dealMinimum_, dealMaximum_);
@@ -313,7 +355,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      */
     function setMultiplier(uint256 multiplier_) external onlySponsor {
         _canConfigure();
-        require(multiplier_ > 1e18, "multiplier must be greater than 1");
+        require(multiplier_ > 1e18, "SRG032");
         multiplier = multiplier_;
     }
 
@@ -322,7 +364,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @param amount The amount of tokens to transfer
      */
     function transferRewards(uint256 amount) external nonReentrant onlySponsor {
-        require(address(rewardToken) != ADDRESS_ZERO, "reward token not set");
+        require(address(rewardToken) != ADDRESS_ZERO, "SRG014");
         rewardToken.safeTransferFrom(sponsor, address(this), amount);
         distributionAmount += amount;
     }
@@ -331,7 +373,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @notice Recover rewards from the deal
      */
     function recoverRewards() external nonReentrant onlySponsor {
-        require(state() == State.Closed || state() == State.Canceled, "cannot recover rewards");
+        require(state() == State.Closed || state() == State.Canceled, "SRG033");
         rewardToken.safeTransfer(sponsor, rewardToken.balanceOf(address(this)));
     }
 
@@ -340,7 +382,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @param rewardToken_ The address of the reward token
      */
     function setRewardToken(address rewardToken_) external onlySponsor {
-        require(address(rewardToken_) != ADDRESS_ZERO, "reward token is zero");
+        require(address(rewardToken_) != ADDRESS_ZERO, "SRG014");
         rewardToken = IERC20Metadata(rewardToken_);
     }
 
@@ -349,8 +391,8 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @param transferable_ Boolean indicating if NFTs are transferable
      */
     function setTransferable(bool transferable_) external onlySponsor {
-        require(state() != State.Canceled, "cannot be changed");
-        require(!_afterClosed(), "cannot be changed");
+        require(state() != State.Canceled, "SRG034");
+        require(!_afterClosed(), "SRG034");
 
         transferable = transferable_;
         emit Transferable(transferable_);
@@ -392,7 +434,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @notice Cancel the deal
      */
     function cancel() external onlySponsorOrArbitrator {
-        require(state() <= State.Active, "cannot be canceled");
+        require(state() <= State.Active, "SRG035");
         _canceled = true;
         emit StateUpdated(State.Canceled);
     }
@@ -419,7 +461,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @param tokenId The ID of the token to unstake
      */
     function unstake(uint256 tokenId) external nonReentrant onlyTokenOwner(tokenId) { 
-        require(state() <= State.Active, "cannot unstake after claiming/closed/canceled");
+        require(state() <= State.Active, "SRG038");
 
         uint256 amount = stakedAmount[tokenId];
         AccountV3TBD tokenBoundAccount = getTokenBoundAccount(tokenId);
@@ -440,7 +482,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @param tokenId The ID of the token to recover
      */
     function recover(uint256 tokenId) external nonReentrant onlyTokenOwner(tokenId) { 
-        require(state() >= State.Closed, "cannot recover before closed/canceled");
+        require(state() >= State.Closed, "SRG039");
 
         AccountV3TBD tokenBoundAccount = getTokenBoundAccount(tokenId);
         uint256 balance = escrowToken.balanceOf(address(tokenBoundAccount));
@@ -609,7 +651,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         bytes32 salt = bytes32(abi.encode(0));
         address payable walletAddress = payable(_registry.createAccount(_implementation, salt, block.chainid, address(this), tokenId));
         AccountV3TBD newAccount = AccountV3TBD(walletAddress);
-        require(newAccount.owner() == staker, "owner mismatch");
+        require(newAccount.owner() == staker, "SRG024");
 
         return walletAddress;
     }
@@ -646,13 +688,13 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @inheritdoc ERC721
      */
     function _transfer(address from, address to, uint256 tokenId) internal override {
-        require(transferable, "not transferable");
+        require(transferable, "SRG040");
 
         uint256 amount = stakedAmount[tokenId];        
 
         if(address(stakersWhitelist) != ADDRESS_ZERO){
             uint256 staked = stakes[to] + amount;
-            require(stakersWhitelist.canStake(to, staked), "whitelist error");
+            require(stakersWhitelist.canStake(to, staked), "SRG041");
         }
 
         stakes[from] -= amount;
@@ -687,19 +729,19 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @notice Function to check claim requirements
      */
     function _canClaim() internal view {
-        require(arbitrator == ADDRESS_ZERO || claimApproved, "claim not approved");
-        require(_claimId < _tokenId, "token id out of bounds");
-        require(state() == State.Claiming, "not in closing week");
-        require(_totalStaked(_tokenId) >= dealMinimum, "minimum stake not reached");
+        require(arbitrator == ADDRESS_ZERO || claimApproved, "SRG042");
+        require(_claimId < _tokenId, "SRG043");
+        require(state() == State.Claiming, "SRG044");
+        require(_totalStaked(_tokenId) >= dealMinimum, "SRG045");
     }
 
     /**
      * @notice Function to check the deal can be configured
      */
     function _canConfigure() internal view {
-        require(state() < State.Closed, "cannot configure");
+        require(state() < State.Closed, "SRG047");
         if(state() == State.Claiming) {
-            require(_totalStaked(_tokenId) < dealMinimum, "minimum stake reached");
+            require(_totalStaked(_tokenId) < dealMinimum, "SRG046");
         }
     }
 
@@ -708,17 +750,17 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @param closingTime_ The closing time to check
      */
     function _validClosingTime(uint256 closingTime_) internal view {
-        require(closingTime_ == 0 || closingTime_ >= block.timestamp + closingDelay, "invalid closing time");
-        require(closingTime_ <= block.timestamp + MAX_CLOSING_RANGE, "invalid closing time");
+        require(closingTime_ == 0 || closingTime_ >= block.timestamp + closingDelay, "SRG016");
+        require(closingTime_ <= block.timestamp + MAX_CLOSING_RANGE, "SRG016");
     }
 
     function _stake(address staker, uint256 amount) internal {
-        require(state() == State.Active, "not an active deal");
-        require(amount > 0, "invalid amount");
+        require(state() == State.Active, "SRG036");
+        require(amount > 0, "SRG015");
         uint256 currentStake = stakes[staker] + amount;
 
         if(address(stakersWhitelist) != ADDRESS_ZERO){
-            require(stakersWhitelist.canStake(staker, currentStake), "whitelist error");
+            require(stakersWhitelist.canStake(staker, currentStake), "SRG037");
         }
 
         uint256 newTokenId = _tokenId++;

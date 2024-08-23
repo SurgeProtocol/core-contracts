@@ -47,7 +47,7 @@ contract DealNFTTransferTest is Test, DealSetup {
 
         _stake(staker1);
 
-        vm.expectRevert("whitelist error");
+        vm.expectRevert("SRG041");
         vm.prank(staker1);
         deal.transferFrom(staker1, staker2, tokenId);
     }
@@ -58,7 +58,7 @@ contract DealNFTTransferTest is Test, DealSetup {
         _stake(staker1);
         assertEq(deal.ownerOf(tokenId), staker1);
 
-        vm.expectRevert("not transferable");
+        vm.expectRevert("SRG040");
         vm.prank(staker1);
         deal.transferFrom(staker1, staker2, tokenId);
     }

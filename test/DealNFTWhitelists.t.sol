@@ -33,9 +33,9 @@ contract DealNFTWhitelistsTest is Test, DealSetup {
 
     function test_RevertWhen_SetWhitelistsWithWrongSender() public {
         vm.prank(staker1);
-        vm.expectRevert("only sponsor");
+        vm.expectRevert("SRG020");
         deal.setStakersWhitelist(address(whitelist));
-        vm.expectRevert("only sponsor");
+        vm.expectRevert("SRG020");
         deal.setClaimsWhitelist(address(whitelist));
     }
 
@@ -53,7 +53,7 @@ contract DealNFTWhitelistsTest is Test, DealSetup {
         vm.prank(sponsor);
         deal.setStakersWhitelist(address(whitelist));
 
-        vm.expectRevert("whitelist error");
+        vm.expectRevert("SRG037");
         _stake(staker1);
     }
 

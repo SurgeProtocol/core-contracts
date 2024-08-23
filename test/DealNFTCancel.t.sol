@@ -29,7 +29,7 @@ contract DealNFTCancelTest is Test, DealSetup {
     }
 
     function test_RevertWhen_CancelWrongSponsorOrArbitrator() public {
-        vm.expectRevert("only sponsor or arbitrator");
+        vm.expectRevert("SRG023");
         vm.prank(staker1);
         deal.cancel();
     }
@@ -38,7 +38,7 @@ contract DealNFTCancelTest is Test, DealSetup {
         skip(15 days);
         assertEq(uint(deal.state()), uint256(DealNFT.State.Claiming));
 
-        vm.expectRevert("cannot be canceled");
+        vm.expectRevert("SRG035");
         vm.prank(sponsor);
         deal.cancel();
     }

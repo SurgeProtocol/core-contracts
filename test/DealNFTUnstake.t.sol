@@ -40,7 +40,7 @@ contract DealNFTUnstakeTest is Test, DealSetup {
     function test_RevertWhen_UnstakeWithWrongOwner() public {
         _stake(staker1);
 
-        vm.expectRevert("only nft owner");
+        vm.expectRevert("SRG022");
         vm.prank(staker2);
         deal.unstake(0);
     }
@@ -50,7 +50,7 @@ contract DealNFTUnstakeTest is Test, DealSetup {
         skip(15 days);
         assertEq(uint256(deal.state()), uint256(DealNFT.State.Claiming));
 
-        vm.expectRevert("cannot unstake after claiming/closed/canceled");
+        vm.expectRevert("SRG038");
         vm.prank(staker1);
         deal.unstake(0);
     }
@@ -63,7 +63,7 @@ contract DealNFTUnstakeTest is Test, DealSetup {
         deal.cancel();
         assertEq(uint(deal.state()), uint256(DealNFT.State.Canceled));
 
-        vm.expectRevert("cannot unstake after claiming/closed/canceled");
+        vm.expectRevert("SRG038");
         vm.prank(staker1);
         deal.unstake(0);
     }
@@ -80,7 +80,7 @@ contract DealNFTUnstakeTest is Test, DealSetup {
         assertEq(deal.totalStaked(), amount);
         assertEq(uint(deal.state()), uint256(DealNFT.State.Closed));
 
-        vm.expectRevert("cannot unstake after claiming/closed/canceled");
+        vm.expectRevert("SRG038");
 
         vm.prank(staker2);
         deal.unstake(1);

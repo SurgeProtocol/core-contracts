@@ -19,7 +19,7 @@ contract DealNFTRecoverTest is Test, DealSetup {
         assertEq(deal.totalStaked(), amount);
         assertEq(uint256(deal.state()), uint256(DealNFT.State.Active));
 
-        vm.expectRevert("cannot recover before closed/canceled");
+        vm.expectRevert("SRG039");
         vm.prank(staker1);
         deal.recover(0);
     }
@@ -29,7 +29,7 @@ contract DealNFTRecoverTest is Test, DealSetup {
         skip(15 days);
         assertEq(uint256(deal.state()), uint256(DealNFT.State.Claiming));
 
-        vm.expectRevert("cannot recover before closed/canceled");
+        vm.expectRevert("SRG039");
         vm.prank(staker1);
         deal.recover(0);
     }
@@ -37,7 +37,7 @@ contract DealNFTRecoverTest is Test, DealSetup {
     function test_RevertWhen_RecoverWithWrongOwner() public {
         _stake(staker1);
 
-        vm.expectRevert("only nft owner");
+        vm.expectRevert("SRG022");
         vm.prank(staker2);
         deal.recover(0);
     }

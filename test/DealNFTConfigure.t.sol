@@ -95,7 +95,7 @@ contract DealNFTConfigureTest is Test, DealSetup {
     }
 
     function test_RevertWhen_ConfigureWithWrongSender() public {
-        vm.expectRevert("only sponsor");
+        vm.expectRevert("SRG020");
         vm.prank(staker1);
         deal.configure("a", block.timestamp + 2 weeks, 0, 1000, address(0));
     }
@@ -107,13 +107,13 @@ contract DealNFTConfigureTest is Test, DealSetup {
 
     function test_RevertWhen_ConfigureWithBadClosingTime() public {
         _setup();
-        vm.expectRevert("invalid closing time");
+        vm.expectRevert("SRG016");
         vm.prank(sponsor);
         deal.configure("a", block.timestamp, 0, 1000, address(0));
     }
 
     function test_RevertWhen_ConfigureWithWrongRange() public {
-        vm.expectRevert("wrong deal range");
+        vm.expectRevert("SRG031");
         vm.prank(sponsor);
         deal.configure("a", block.timestamp + 2 weeks, 1000, 999, address(0));
     }
@@ -123,7 +123,7 @@ contract DealNFTConfigureTest is Test, DealSetup {
         _configure();
         _activate();
         skip(4 weeks);
-        vm.expectRevert("cannot configure");
+        vm.expectRevert("SRG047");
         _configure();
     }
 
@@ -136,12 +136,12 @@ contract DealNFTConfigureTest is Test, DealSetup {
         skip(17 days);
 
         assertEq(uint256(deal.state()), uint256(DealNFT.State.Claiming));
-        vm.expectRevert("minimum stake reached");
+        vm.expectRevert("SRG046");
         _configure();
     }
 
     function test_RevertWhen_SetMultiplierNotSponsor() public {
-        vm.expectRevert("only sponsor");
+        vm.expectRevert("SRG020");
         vm.prank(staker1);
         deal.setMultiplier(2);
     }
@@ -154,7 +154,7 @@ contract DealNFTConfigureTest is Test, DealSetup {
         _stake(staker1);
         skip(23 days);
 
-        vm.expectRevert("cannot configure");
+        vm.expectRevert("SRG047");
         vm.prank(sponsor);
         deal.setMultiplier(2);
     }
@@ -167,7 +167,7 @@ contract DealNFTConfigureTest is Test, DealSetup {
         _stake(staker1);
         skip(17 days);
 
-        vm.expectRevert("minimum stake reached");
+        vm.expectRevert("SRG046");
         vm.prank(sponsor);
         deal.setMultiplier(2);
     }
