@@ -13,6 +13,10 @@ contract Constants {
     string public baseURI = "https://api.surge.rip";
 
     constructor() {
+        // bob
+        treasury[60808] = 0x39110eEfD8542b3308817a27EbD3509386D37754;
+        implementation[60808] = 0x6227a8a36Ad91C1ea96bb3bAe7Bc802913bb8c61;
+
         // base
         treasury[8453] = 0x39110eEfD8542b3308817a27EbD3509386D37754;
         implementation[8453] = 0x951C52FFA6feF92C883Fd49F762394e5066888A1;

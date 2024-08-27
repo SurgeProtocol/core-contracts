@@ -14,7 +14,7 @@ contract DeployStakingRelayer is Script {
         Constants constants = new Constants();
         bytes32 salt = constants.salt();
         address factory = constants.factory();
-        address owner = constants.sponsor();
+        address owner = constants.treasury(block.chainid);
 
         address relayer = Create2.computeAddress(
             salt,
