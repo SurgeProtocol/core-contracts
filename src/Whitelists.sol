@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.25;
+pragma solidity ^0.8.19;
 
 import {IWhitelist} from "./interfaces/IWhitelist.sol";
 
@@ -26,7 +26,7 @@ contract Whitelists is IWhitelist {
      * @param staker_ staker address
      * @param amount_ amount to stake
      */
-    function approveStaker(address staker_, uint256 amount_) external onlySponsor {
+    function approveStaker(address staker_, uint256 amount_) external virtual onlySponsor {
         stakesApprovals[staker_] = amount_;
         emit StakerApproval(sponsor, staker_, amount_);
     }
@@ -36,7 +36,7 @@ contract Whitelists is IWhitelist {
      * @param staker_ staker address
      * @param qualified_ true if staker is qualified to claim
      */
-    function approveBuyer(address staker_, bool qualified_) external onlySponsor {
+    function approveBuyer(address staker_, bool qualified_) public virtual onlySponsor {
         claimsApprovals[staker_] = qualified_;
         emit BuyerApproval(sponsor, staker_, qualified_);
     }
@@ -47,10 +47,7 @@ contract Whitelists is IWhitelist {
      * @param amount_ amount to stake
      * @return true if staker can stake amount
      */
-    function canStake(
-        address staker_,
-        uint256 amount_
-    ) external view override returns (bool) {
+    function canStake(address staker_, uint256 amount_) public view virtual returns (bool) {
         return stakesApprovals[staker_] >= amount_;
     }
 
@@ -59,7 +56,7 @@ contract Whitelists is IWhitelist {
      * @param staker_ staker address
      * @return true if staker can claim
      */
-    function canClaim(address staker_) external view override returns (bool) {
+    function canClaim(address staker_) public view virtual returns (bool) {
         return claimsApprovals[staker_];
     }
 }
