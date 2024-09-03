@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.19;
+pragma solidity 0.8.25;
 
 interface IWhitelist {
     function claimsApprovals(address staker) external view returns (bool);

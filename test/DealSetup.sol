@@ -30,7 +30,7 @@ contract DealSetup is Test {
         staker1 = vm.addr(3);
         staker2 = vm.addr(4);
 
-        escrowToken = new ERC20PresetFixedSupply("escrow", "escrow", 5000000, address(this));
+        escrowToken = new ERC20PresetFixedSupply("escrow", "escrow", 6000000, address(this));
         escrowToken.transfer(address(staker1), amount);
         escrowToken.transfer(address(staker2), amount);
         escrowToken.transfer(address(sponsor), amount*3);
