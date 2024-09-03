@@ -72,4 +72,13 @@ contract ReaderTest is Test, DealSetup {
         assertEq(stakes[1].staked, amount);
         assertEq(stakes[1].claimed, 0);
     }
+
+    function test_GetShortDeal() public {
+        IDeal.DealShortData memory deal = reader.getShortDeal(address(deal));
+        assertEq(deal.name, "SurgeDealTEST");
+        assertEq(deal.image, "https://test3.com");
+        assertEq(deal.symbol, "SRGTEST");
+        assertEq(uint256(deal.state), uint256(DealNFT.State.Active));
+        assertEq(deal.description, "desc");
+    }
 }

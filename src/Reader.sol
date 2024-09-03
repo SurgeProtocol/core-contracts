@@ -37,7 +37,20 @@ contract Reader{
             escrowName: escrowToken.name(),
             escrowSymbol: escrowToken.symbol(),
             escrowDecimals: escrowToken.decimals(),
-            claimed: dealInstance.getStakesTo(_nextId)
+            claimed: dealInstance.getStakesTo(_nextId),
+            transferable: dealInstance.transferable()
+        });
+    }
+
+    function getShortDeal(address dealAddress) external view returns (IDeal.DealShortData memory deal) {
+        IDeal dealInstance = IDeal(dealAddress);
+
+        deal = IDeal.DealShortData({
+            name: dealInstance.name(),
+            image: dealInstance.image(),
+            symbol: dealInstance.symbol(),
+            state: dealInstance.state(),
+            description: dealInstance.description()
         });
     }
 }

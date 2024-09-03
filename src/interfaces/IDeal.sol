@@ -42,6 +42,15 @@ interface IDeal {
         string escrowSymbol;
         uint8 escrowDecimals;
         StakeData[] claimed;
+        bool transferable;
+    }
+
+    struct DealShortData {
+        string name;
+        string image;
+        string symbol;
+        State state;
+        string description;
     }
 
     function escrowToken() external view returns (IERC20Metadata);
