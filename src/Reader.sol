@@ -9,7 +9,22 @@ contract Reader{
     function getDeal(address dealAddress) external view returns (IDeal.DealData memory deal) {
         IDeal dealInstance = IDeal(dealAddress);
         IERC20Metadata escrowToken = dealInstance.escrowToken();
+
+        string memory _escrowName;
+        string memory _escrowSymbol;
+        uint8 _escrowDecimals = 6;
+
+        if(address(escrowToken) != address(0)){
+            _escrowName = escrowToken.name();
+            _escrowSymbol = escrowToken.symbol();
+            _escrowDecimals = escrowToken.decimals();
+        }
+
         uint256 _nextId = dealInstance.nextId();
+        IDeal.StakeData[] memory _claimed = new IDeal.StakeData[](_nextId);
+        if(_nextId > 0){
+            _claimed = dealInstance.getStakesTo(_nextId);
+        }
 
         deal = IDeal.DealData({
             sponsor: dealInstance.sponsor(),
@@ -34,10 +49,10 @@ contract Reader{
             name: dealInstance.name(),
             symbol: dealInstance.symbol(),
             image: dealInstance.image(),
-            escrowName: escrowToken.name(),
-            escrowSymbol: escrowToken.symbol(),
-            escrowDecimals: escrowToken.decimals(),
-            claimed: dealInstance.getStakesTo(_nextId),
+            escrowName: _escrowName,
+            escrowSymbol: _escrowSymbol,
+            escrowDecimals: _escrowDecimals,
+            claimed: _claimed,
             transferable: dealInstance.transferable()
         });
     }
