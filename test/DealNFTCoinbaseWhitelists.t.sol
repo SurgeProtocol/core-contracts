@@ -39,7 +39,7 @@ contract DealNFTCoinbaseWhitelistsTest is Test, DealSetup {
         whitelist.approveStaker(attestation_recipient, amount);
 
         vm.prank(attestation_recipient);
-        whitelist.addAttestation(attestation_uid);
+        whitelist.addAttestation(attestation_recipient, attestation_uid);
 
         vm.prank(attestation_recipient);
         deal.stake(attestation_recipient, amount);
@@ -50,13 +50,11 @@ contract DealNFTCoinbaseWhitelistsTest is Test, DealSetup {
 
         vm.prank(sponsor);
         deal.setStakersWhitelist(address(whitelist));
-        
-        vm.prank(sponsor);
-        whitelist.approveStaker(attestation_recipient, amount);
 
         vm.expectRevert(AttestationNotFound.selector);
+        bytes32 bad_attestation_uid = 0x018A59A87F02771C0DA2C77B58E3F587D3F52760AD0F0ED43827BC45737D3FB4;
         vm.prank(attestation_recipient);
-        whitelist.addAttestation(0x018A59A87F02771C0DA2C77B58E3F587D3F52760AD0F0ED43827BC45737D3FB4);
+        whitelist.addAttestation(attestation_recipient, bad_attestation_uid);
 
         vm.expectRevert(AttestationNotFound.selector);
         vm.prank(attestation_recipient);

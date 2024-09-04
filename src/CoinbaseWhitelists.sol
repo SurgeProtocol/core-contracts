@@ -15,18 +15,18 @@ contract CoinbaseWhitelists is Whitelists {
 
     constructor(address sponsor_) Whitelists(sponsor_) {}
 
-    function addAttestation(bytes32 uid_) external {
-        require(stakesApprovals[msg.sender] > 0, "staker not approved");
-        verify(uid_, msg.sender);
-        stakerUID[msg.sender] = uid_;
+    function addAttestation(address staker_, bytes32 uid_) external {
+        verify(staker_, uid_);
+        stakerUID[staker_] = uid_;
     }
 
     function canStake(address staker_, uint256 amount_) public view override returns (bool) {
-        verify(stakerUID[staker_], staker_);
+        bytes32 uid = stakerUID[staker_];
+        verify(staker_, uid);
         return super.canStake(staker_, amount_);
     }
 
-    function verify(bytes32 uid_, address staker_) private view {
+    function verify(address staker_, bytes32 uid_) private view {
         Attestation memory attestation = EAS(_EAS).getAttestation(uid_);
         AttestationVerifier.verifyAttestation(attestation, staker_, _SCHEMA);
         // this will revert if the attestation is invalid
