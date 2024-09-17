@@ -40,7 +40,7 @@ contract DealNFTClaimTest is Test {
         staker7 = vm.addr(9);
 
         escrowToken = new EscrowToken("escrow", "escrow", 10000e8, address(this));
-        deliveryToken = new DeliveryToken("reward", "reward", 10000e12, address(this));
+        deliveryToken = new DeliveryToken("delivery", "delivery", 10000e12, address(this));
 
         escrowToken.transfer(address(staker1), amount);
         escrowToken.transfer(address(staker2), amount);
@@ -131,7 +131,7 @@ contract DealNFTClaimTest is Test {
     function test_ClaimWithManualDeliveredBonus() public {
         uint256 stakeAmount = 10e8;
 
-        _setup(0);
+        _setup(0, 1e18);
         _stake(staker1, stakeAmount);
         _stake(staker2, stakeAmount*2);
         _stake(staker3, stakeAmount*3);
@@ -167,7 +167,7 @@ contract DealNFTClaimTest is Test {
         100	110	-	-	    -	            -	        201,17973908
     */
      function test_ClaimWithAutomatedDeliveredBonus() public {
-        _setup(201179739080000);
+        _setup(201179739080000, 5e18);
         _stake(staker1, 10e8);
         _stake(staker2, 10e8);
         _stake(staker3, 20e8);
@@ -204,6 +204,62 @@ contract DealNFTClaimTest is Test {
         assertEq(deliveryToken.balanceOf(staker5), bonus4);
         assertEq(deliveryToken.balanceOf(staker6), bonus5);
         assertEq(deliveryToken.balanceOf(staker7), bonus6);
+
+        assertEq(42059029583032, bonus0);
+        assertEq(31414303539132, bonus1);
+        assertEq(45965597521544, bonus2);
+        assertEq(17887605457372, bonus3);
+        assertEq(42059029583032, bonus4);
+        assertEq(11371472277170, bonus5);
+        assertEq(10422701118714, bonus6);
+    }
+
+    function test_ClaimWithAutomatedDeliveredWithoutBonus() public {
+        _setup(201179739080000, 1e18);
+        _stake(staker1, 10e8);
+        _stake(staker2, 10e8);
+        _stake(staker3, 20e8);
+        _stake(staker4, 10e8);
+        _stake(staker5, 30e8);
+        _stake(staker6, 10e8);
+        _stake(staker7, 20e8);
+
+        uint256 maximum = deal.dealMaximum();
+        uint256 bonus0 = deal.getDeliveryTokensFor(0, maximum);
+        uint256 bonus1 = deal.getDeliveryTokensFor(1, maximum);
+        uint256 bonus2 = deal.getDeliveryTokensFor(2, maximum);
+        uint256 bonus3 = deal.getDeliveryTokensFor(3, maximum);
+        uint256 bonus4 = deal.getDeliveryTokensFor(4, maximum);
+        uint256 bonus5 = deal.getDeliveryTokensFor(5, maximum);
+        uint256 bonus6 = deal.getDeliveryTokensFor(6, maximum);
+
+        assertEq(deliveryToken.balanceOf(staker1), 0);
+        assertEq(deliveryToken.balanceOf(staker2), 0);
+        assertEq(deliveryToken.balanceOf(staker3), 0);
+        assertEq(deliveryToken.balanceOf(staker4), 0);
+        assertEq(deliveryToken.balanceOf(staker5), 0);
+        assertEq(deliveryToken.balanceOf(staker6), 0);
+        assertEq(deliveryToken.balanceOf(staker7), 0);
+
+        skip(15 days);
+        vm.prank(sponsor);
+        deal.claim();
+
+        assertEq(deliveryToken.balanceOf(staker1), bonus0);
+        assertEq(deliveryToken.balanceOf(staker2), bonus1);
+        assertEq(deliveryToken.balanceOf(staker3), bonus2);
+        assertEq(deliveryToken.balanceOf(staker4), bonus3);
+        assertEq(deliveryToken.balanceOf(staker5), bonus4);
+        assertEq(deliveryToken.balanceOf(staker6), bonus5);
+        assertEq(deliveryToken.balanceOf(staker7), bonus6);
+
+        assertEq(18289067189090, bonus0);
+        assertEq(18289067189090, bonus1);
+        assertEq(36578134378181, bonus2);
+        assertEq(18289067189090, bonus3);
+        assertEq(54867201567272, bonus4);
+        assertEq(18289067189090, bonus5);
+        assertEq(36578134378181, bonus6);
     }
 
     /*
@@ -223,7 +279,7 @@ contract DealNFTClaimTest is Test {
         100	110	-	-	    -	            -	        160,94379124
     */
      function test_ClaimWithAutomatedDeliveredBonus_WhenMaximumIsNotReached() public {
-        _setup(160943791240000);
+        _setup(160943791240000, 5e18);
         _stake(staker1, 10e8);
         _stake(staker2, 10e8);
         _stake(staker3, 20e8);
@@ -254,11 +310,11 @@ contract DealNFTClaimTest is Test {
         assertEq(deliveryToken.balanceOf(staker5), bonus4);
     }
 
-    function _setup(uint256 delivery) internal {
+    function _setup(uint256 delivery, uint256 multiple) internal {
         vm.startPrank(sponsor);
         deal.configure("desc", "https://social", "https://website", block.timestamp + 2 weeks, 50e8, 100e8, address(0));
         deal.setDeliveryToken(address(deliveryToken));
-        deal.setMultiple(5e18);
+        deal.setMultiple(multiple);
         deliveryToken.approve(address(deal), 10000e12);
         if(delivery > 0) deal.depositDeliveryTokens(delivery);
         vm.stopPrank();

@@ -555,12 +555,12 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
 
         if(T == 0 || L == 0 || M == 0) return 0;
 
+        if(multiple == 1e18) { // if no discount
+            return L * T / _totalStaked(_tokenId); // stakedAmount * deliveryAmount / totalStaked
+        }
+
         uint256 S = _totalStaked(tokenId);
         uint256 X = S - L;
-
-        if(multiple == 1e18) { // if no discount
-            return L * T / S; // stakedAmount * deliveryAmount / totalStaked
-        }
 
         if (S > C) { // dealMaximum was reached - calculate bonus for a partial stake
             L = C > X ? C - X : 0;
