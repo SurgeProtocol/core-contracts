@@ -4,7 +4,7 @@ pragma solidity 0.8.25;
 
 import {ERC20PresetFixedSupply} from "openzeppelin/token/ERC20/presets/ERC20PresetFixedSupply.sol";
 
-contract RewardToken is ERC20PresetFixedSupply {
+contract DeliveryToken is ERC20PresetFixedSupply {
     /**
      * @dev Mints `initialSupply` amount of token and transfers them to `owner`.
      *

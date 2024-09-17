@@ -9,13 +9,13 @@ import "erc6551/ERC6551Registry.sol";
 import "tokenbound/src/AccountGuardian.sol";
 import {IERC20Metadata} from "openzeppelin/token/ERC20/extensions/IERC20Metadata.sol";
 
-import {RewardToken} from "./RewardToken.sol";
+import {DeliveryToken} from "./DeliveryToken.sol";
 import {EscrowToken} from "./EscrowToken.sol";
 
 contract DealNFTClaimTest is Test {
     DealNFT public deal;
     IERC20Metadata public escrowToken;
-    IERC20Metadata public rewardToken;
+    IERC20Metadata public deliveryToken;
 
     uint256 amount = 100e8;
     address sponsor;
@@ -40,7 +40,7 @@ contract DealNFTClaimTest is Test {
         staker7 = vm.addr(9);
 
         escrowToken = new EscrowToken("escrow", "escrow", 10000e8, address(this));
-        rewardToken = new RewardToken("reward", "reward", 10000e12, address(this));
+        deliveryToken = new DeliveryToken("reward", "reward", 10000e12, address(this));
 
         escrowToken.transfer(address(staker1), amount);
         escrowToken.transfer(address(staker2), amount);
@@ -49,7 +49,7 @@ contract DealNFTClaimTest is Test {
         escrowToken.transfer(address(staker5), amount);
         escrowToken.transfer(address(staker6), amount);
         escrowToken.transfer(address(staker7), amount);
-        rewardToken.transfer(address(sponsor), 10000e12);
+        deliveryToken.transfer(address(sponsor), 10000e12);
 
         ERC6551Registry registry = new ERC6551Registry();
         Multicall3 forwarder = new Multicall3();
@@ -88,19 +88,19 @@ contract DealNFTClaimTest is Test {
         escrowToken.approve(address(deal), amount);
 
         vm.startPrank(sponsor);
-        deal.setup(address(escrowToken), 30 minutes, 50000, "https://test1.com", "https://test2.com", "https://test3.com");
-        deal.configure("desc", block.timestamp + 2 weeks, 0, 2000000, address(0));
+        deal.setup(address(escrowToken), 30 minutes, 50000, "https://social", "https://website", "https://image", "desc");
+        deal.configure("desc", "https://social", "https://website", block.timestamp + 2 weeks, 0, 2000000, address(0));
         deal.activate();
         vm.stopPrank();
     }
 
     function test_Claim() public {
         vm.startPrank(sponsor);
-        deal.configure("desc", block.timestamp + 2 weeks, 50e8, 150e8, address(0));
-        deal.setMultiplier(5e18);
-        deal.setRewardToken(address(rewardToken));
-        rewardToken.approve(address(deal), 10000e12);
-        deal.transferRewards(10000e12);
+        deal.configure("desc", "https://social", "https://website", block.timestamp + 2 weeks, 50e8, 150e8, address(0));
+        deal.setMultiple(5e18);
+        deal.setDeliveryToken(address(deliveryToken));
+        deliveryToken.approve(address(deal), 10000e12);
+        deal.depositDeliveryTokens(10000e12);
         vm.stopPrank();
 
         _stake(staker1, amount);
@@ -177,33 +177,33 @@ contract DealNFTClaimTest is Test {
         _stake(staker7, 20e8);
 
         uint256 maximum = deal.dealMaximum();
-        uint256 bonus0 = deal.getRewardsOf(0, maximum);
-        uint256 bonus1 = deal.getRewardsOf(1, maximum);
-        uint256 bonus2 = deal.getRewardsOf(2, maximum);
-        uint256 bonus3 = deal.getRewardsOf(3, maximum);
-        uint256 bonus4 = deal.getRewardsOf(4, maximum);
-        uint256 bonus5 = deal.getRewardsOf(5, maximum);
-        uint256 bonus6 = deal.getRewardsOf(6, maximum);
+        uint256 bonus0 = deal.getDeliveryTokensFor(0, maximum);
+        uint256 bonus1 = deal.getDeliveryTokensFor(1, maximum);
+        uint256 bonus2 = deal.getDeliveryTokensFor(2, maximum);
+        uint256 bonus3 = deal.getDeliveryTokensFor(3, maximum);
+        uint256 bonus4 = deal.getDeliveryTokensFor(4, maximum);
+        uint256 bonus5 = deal.getDeliveryTokensFor(5, maximum);
+        uint256 bonus6 = deal.getDeliveryTokensFor(6, maximum);
 
-        assertEq(rewardToken.balanceOf(staker1), 0);
-        assertEq(rewardToken.balanceOf(staker2), 0);
-        assertEq(rewardToken.balanceOf(staker3), 0);
-        assertEq(rewardToken.balanceOf(staker4), 0);
-        assertEq(rewardToken.balanceOf(staker5), 0);
-        assertEq(rewardToken.balanceOf(staker6), 0);
-        assertEq(rewardToken.balanceOf(staker7), 0);
+        assertEq(deliveryToken.balanceOf(staker1), 0);
+        assertEq(deliveryToken.balanceOf(staker2), 0);
+        assertEq(deliveryToken.balanceOf(staker3), 0);
+        assertEq(deliveryToken.balanceOf(staker4), 0);
+        assertEq(deliveryToken.balanceOf(staker5), 0);
+        assertEq(deliveryToken.balanceOf(staker6), 0);
+        assertEq(deliveryToken.balanceOf(staker7), 0);
 
         skip(15 days);
         vm.prank(sponsor);
         deal.claim();
 
-        assertEq(rewardToken.balanceOf(staker1), bonus0);
-        assertEq(rewardToken.balanceOf(staker2), bonus1);
-        assertEq(rewardToken.balanceOf(staker3), bonus2);
-        assertEq(rewardToken.balanceOf(staker4), bonus3);
-        assertEq(rewardToken.balanceOf(staker5), bonus4);
-        assertEq(rewardToken.balanceOf(staker6), bonus5);
-        assertEq(rewardToken.balanceOf(staker7), bonus6);
+        assertEq(deliveryToken.balanceOf(staker1), bonus0);
+        assertEq(deliveryToken.balanceOf(staker2), bonus1);
+        assertEq(deliveryToken.balanceOf(staker3), bonus2);
+        assertEq(deliveryToken.balanceOf(staker4), bonus3);
+        assertEq(deliveryToken.balanceOf(staker5), bonus4);
+        assertEq(deliveryToken.balanceOf(staker6), bonus5);
+        assertEq(deliveryToken.balanceOf(staker7), bonus6);
     }
 
     /*
@@ -231,36 +231,36 @@ contract DealNFTClaimTest is Test {
         _stake(staker5, 30e8);
 
         uint256 maximum = deal.totalStaked();
-        uint256 bonus0 = deal.getRewardsOf(0, maximum);
-        uint256 bonus1 = deal.getRewardsOf(1, maximum);
-        uint256 bonus2 = deal.getRewardsOf(2, maximum);
-        uint256 bonus3 = deal.getRewardsOf(3, maximum);
-        uint256 bonus4 = deal.getRewardsOf(4, maximum);
+        uint256 bonus0 = deal.getDeliveryTokensFor(0, maximum);
+        uint256 bonus1 = deal.getDeliveryTokensFor(1, maximum);
+        uint256 bonus2 = deal.getDeliveryTokensFor(2, maximum);
+        uint256 bonus3 = deal.getDeliveryTokensFor(3, maximum);
+        uint256 bonus4 = deal.getDeliveryTokensFor(4, maximum);
 
-        assertEq(rewardToken.balanceOf(staker1), 0);
-        assertEq(rewardToken.balanceOf(staker2), 0);
-        assertEq(rewardToken.balanceOf(staker3), 0);
-        assertEq(rewardToken.balanceOf(staker4), 0);
-        assertEq(rewardToken.balanceOf(staker5), 0);
+        assertEq(deliveryToken.balanceOf(staker1), 0);
+        assertEq(deliveryToken.balanceOf(staker2), 0);
+        assertEq(deliveryToken.balanceOf(staker3), 0);
+        assertEq(deliveryToken.balanceOf(staker4), 0);
+        assertEq(deliveryToken.balanceOf(staker5), 0);
 
         skip(15 days);
         vm.prank(sponsor);
         deal.claim();
 
-        assertEq(rewardToken.balanceOf(staker1), bonus0);
-        assertEq(rewardToken.balanceOf(staker2), bonus1);
-        assertEq(rewardToken.balanceOf(staker3), bonus2);
-        assertEq(rewardToken.balanceOf(staker4), bonus3);
-        assertEq(rewardToken.balanceOf(staker5), bonus4);
+        assertEq(deliveryToken.balanceOf(staker1), bonus0);
+        assertEq(deliveryToken.balanceOf(staker2), bonus1);
+        assertEq(deliveryToken.balanceOf(staker3), bonus2);
+        assertEq(deliveryToken.balanceOf(staker4), bonus3);
+        assertEq(deliveryToken.balanceOf(staker5), bonus4);
     }
 
-    function _setup(uint256 rewards) internal {
+    function _setup(uint256 delivery) internal {
         vm.startPrank(sponsor);
-        deal.configure("desc", block.timestamp + 2 weeks, 50e8, 100e8, address(0));
-        deal.setRewardToken(address(rewardToken));
-        deal.setMultiplier(5e18);
-        rewardToken.approve(address(deal), 10000e12);
-        if(rewards > 0) deal.transferRewards(rewards);
+        deal.configure("desc", "https://social", "https://website", block.timestamp + 2 weeks, 50e8, 100e8, address(0));
+        deal.setDeliveryToken(address(deliveryToken));
+        deal.setMultiple(5e18);
+        deliveryToken.approve(address(deal), 10000e12);
+        if(delivery > 0) deal.depositDeliveryTokens(delivery);
         vm.stopPrank();
     }
 

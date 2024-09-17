@@ -20,18 +20,18 @@ interface IDeal {
         IWhitelist stakersWhitelist;
         IWhitelist claimsWhitelist;
         IERC20Metadata escrowToken;
-        IERC20Metadata rewardToken;
+        IERC20Metadata deliveryToken;
         uint256 closingTime;
         uint256 closingDelay;
         uint256 totalClaimed;
         uint256 totalStaked;
-        uint256 multiplier;
+        uint256 multiple;
         uint256 dealMinimum;
         uint256 dealMaximum;
         uint256 unstakingFee;
         uint256 nextId;
         State state;
-        string twitter;
+        string social;
         string description;
         string website;
         string name;
@@ -54,13 +54,13 @@ interface IDeal {
     }
 
     function escrowToken() external view returns (IERC20Metadata);
-    function rewardToken() external view returns (IERC20Metadata);
+    function deliveryToken() external view returns (IERC20Metadata);
     function transferable() external view returns (bool);
     function closingTime() external view returns (uint256);
     function closingDelay() external view returns (uint256);
     function totalClaimed() external view returns (uint256);
     function totalStaked() external view returns (uint256);
-    function multiplier() external view returns (uint256);
+    function multiple() external view returns (uint256);
     function dealMinimum() external view returns (uint256);
     function dealMaximum() external view returns (uint256);
     function unstakingFee() external view returns (uint256);
@@ -70,7 +70,7 @@ interface IDeal {
     function stakersWhitelist() external view returns (IWhitelist);
     function claimsWhitelist() external view returns (IWhitelist);
     function state() external view returns (State);
-    function twitter() external view returns (string memory);
+    function social() external view returns (string memory);
     function description() external view returns (string memory);
     function website() external view returns (string memory);
     function name() external view returns (string memory);

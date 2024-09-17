@@ -28,9 +28,9 @@ import {UD60x18, ud, ln, intoUint256} from "prb/UD60x18.sol";
  * SRG009: closing delay is too big
  * SRG010: closing delay is bigger than 10%
  * SRG011: website is empty
- * SRG012: twitter is empty
+ * SRG012: social is empty
  * SRG013: image is empty
- * SRG014: reward token is zero
+ * SRG014: delivery token is zero
  * SRG015: invalid amount
  * SRG016: invalid closing time
  *
@@ -42,8 +42,8 @@ import {UD60x18, ud, ln, intoUint256} from "prb/UD60x18.sol";
  *
  * SRG030: cannot setup
  * SRG031: wrong deal range
- * SRG032: multiplier must be greater than 1
- * SRG033: cannot recover rewards
+ * SRG032: multiple must be greater than or equal to 1
+ * SRG033: cannot recover delivery tokens
  * SRG034: cannot be changed
  * SRG035: cannot be canceled
  * SRG036: not an active deal
@@ -66,8 +66,8 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     using SafeERC20 for IERC20Metadata;
 
     // Events
-    event Setup(address escrowToken, uint256 closingDelay, uint256 unstakingFee, string web, string twitter, string image, State state);
-    event Configure(string description, uint256 closingTime, uint256 dealMinimum, uint256 dealMaximum, address arbitrator, State state);
+    event Setup(address escrowToken, uint256 closingDelay, uint256 unstakingFee, string web, string social, string image, string description, State state);
+    event Configure(string description, string social, string website, uint256 closingTime, uint256 dealMinimum, uint256 dealMaximum, address arbitrator, State state);
     event Transferable(bool transferable);
     event SetStakersWhitelist(address whitelist);
     event SetClaimsWhitelist(address whitelist);
@@ -75,8 +75,6 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     event Stake(address indexed staker, address tokenBoundAccount, uint256 tokenId, uint256 amount);
     event Unstake(address indexed staker, address tokenBoundAccount, uint256 tokenId, uint256 amount);
     event Recover(address indexed staker, address tokenBoundAccount, uint256 tokenId, uint256 amount);
-    event WebsiteUpdated(string website);
-    event TwitterUpdated(string twitter);
     event DescriptionUpdated(string description);
     event ClosingTimeUpdated(uint256 indexed closingTime);
     event DealRangeUpdated(uint256 indexed dealMinimum, uint256 indexed dealMaximum);
@@ -108,19 +106,19 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     uint256 public closingTime;
     uint256 public dealMinimum;
     uint256 public dealMaximum;
-    uint256 public multiplier;
-    uint256 public distributionAmount;
+    uint256 public multiple;
+    uint256 public deliveryAmount;
     uint256 public totalClaimed;
     uint256 public chainMaximum;
 
     IERC20Metadata public escrowToken;
-    IERC20Metadata public rewardToken;
+    IERC20Metadata public deliveryToken;
     IWhitelist public stakersWhitelist;
     IWhitelist public claimsWhitelist;
 
     string private _base;
     string public website;
-    string public twitter;
+    string public social;
     string public image;
     string public description;
 
@@ -168,12 +166,9 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
 
         _registry = IERC6551Registry(registry_);
         _implementation = implementation_;
-
         sponsor = sponsor_;
         treasury = treasury_;
-        
-        multiplier = 5e18; // defaults to 5x
-
+        multiple = 1e18;
         _base = string.concat(baseURI_, "/chain/", block.chainid.toString(), "/deal/", address(this).toHexString(), "/token/");
     }
 
@@ -216,47 +211,30 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @param closingDelay_ The delay before closing the deal
      * @param unstakingFee_ The fee for unstaking tokens
      * @param website_ The website associated with the deal
-     * @param twitter_ The Twitter account associated with the deal
+     * @param social_ The Social account associated with the deal
      * @param image_ The image associated with the deal
+     * @param description_ The description of the deal
      */
     function setup(
         address escrowToken_,
         uint256 closingDelay_,
         uint256 unstakingFee_,
+        string memory social_,
         string memory website_,
-        string memory twitter_,
-        string memory image_
+        string memory image_,
+        string memory description_
     ) external onlySponsor {
         require(state() == State.Setup, "SRG030");
 
         escrowToken = IERC20Metadata(escrowToken_);
         closingDelay = closingDelay_;
         unstakingFee = unstakingFee_;
+        social = social_;
         website = website_;
-        twitter = twitter_;
         image = image_;
+        description = description_;
 
-        emit Setup(address(escrowToken), closingDelay, unstakingFee, website, twitter, image, State.Setup);
-    }
-
-    /**
-     * @notice Set the sponsor's website
-     * @param website_ The website URL
-     */
-    function setWeb(string memory website_) external onlySponsor {
-        _canConfigure();
-        website = website_;
-        emit WebsiteUpdated(website_);
-    }
-
-    /**
-     * @notice Set the sponsor's Twitter handle
-     * @param twitter_ The Twitter handle
-     */
-    function setTwitter(string memory twitter_) external onlySponsor {
-        _canConfigure();
-        twitter = twitter_;
-        emit TwitterUpdated(twitter_);
+        emit Setup(address(escrowToken), closingDelay, unstakingFee, website, social, image, description, State.Setup);
     }
 
     /**
@@ -269,7 +247,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         require(closingDelay < MAX_CLOSING_RANGE, "SRG009");
         require(unstakingFee <= MAX_FEE, "SRG010");
         require(bytes(website).length > 0, "SRG011");
-        require(bytes(twitter).length > 0, "SRG012");
+        require(bytes(social).length > 0, "SRG012");
         require(bytes(image).length > 0, "SRG013");
 
         _active = true;
@@ -280,12 +258,17 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     /**
      * @notice Configure the deal
      * @param description_ Description of the deal
+     * @param social_ Social account associated with the deal
+     * @param website_ Website associated with the deal
      * @param closingTime_ Closing time of the deal
      * @param dealMinimum_ Minimum amount of tokens required for the deal
      * @param dealMaximum_ Maximum amount of tokens allowed for the deal
-     */
+     * @param arbitrator_ Address of the arbitrator
+    */
     function configure(
         string memory description_,
+        string memory social_,
+        string memory website_,
         uint256 closingTime_,
         uint256 dealMinimum_,
         uint256 dealMaximum_,
@@ -296,94 +279,52 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         require(dealMinimum_ <= dealMaximum_, "SRG031");
 
         description = description_;
+        social = social_;
+        website = website_;
         closingTime = closingTime_;
         dealMinimum = dealMinimum_;
         dealMaximum = dealMaximum_;
         arbitrator = arbitrator_;
 
-        emit Configure(description, closingTime, dealMinimum, dealMaximum, arbitrator, State.Active);
+        emit Configure(description, social, website, closingTime, dealMinimum, dealMaximum, arbitrator, State.Active);
     }
 
     /**
-     * @notice Set the description of the deal
-     * @param description_ The description of the deal
+     * @notice Set the multiple of the delivery tokens
+     * @param multiple_ The multiple of the delivery tokens
+     * @dev multiple is in 1e6 precision
      */
-    function setDescription(string memory description_) external onlySponsor {
+    function setMultiple(uint256 multiple_) external onlySponsor {
         _canConfigure();
-        description = description_;
-        emit DescriptionUpdated(description_);
+        require(multiple_ >= 1e18, "SRG032");
+        multiple = multiple_;
     }
 
     /**
-     * @notice Set the closing time of the deal
-     * @param closingTime_ The closing time of the deal
-     */
-    function setClosingTime(uint256 closingTime_) external onlySponsor {
-        _canConfigure();
-        _validClosingTime(closingTime_);
-        closingTime = closingTime_;
-        emit ClosingTimeUpdated(closingTime_);
-    }
-
-    /**
-     * @notice Set the deal boundaries
-     * @param dealMinimum_ The minimum amount of tokens required for the deal
-     * @param dealMaximum_ The maximum amount of tokens allowed for the deal
-     */
-    function setDealRange(uint256 dealMinimum_, uint256 dealMaximum_) external onlySponsor {
-        _canConfigure();
-        require(dealMinimum_ <= dealMaximum_, "SRG031");
-        dealMinimum = dealMinimum_;
-        dealMaximum = dealMaximum_;
-        emit DealRangeUpdated(dealMinimum_, dealMaximum_);
-    }
-
-    /**
-     * @notice Set the arbitrator of the deal
-     * @param arbitrator_ The address of the arbitrator
-     */
-    function setArbitrator(address arbitrator_) external onlySponsor {
-        _canConfigure();
-        arbitrator = arbitrator_;
-        emit ArbitratorUpdated(arbitrator_);
-    }
-
-    /**
-     * @notice Set the multiplier of the reward tokens
-     * @param multiplier_ The multiplier of the reward tokens
-     * @dev multiplier is in 1e6 precision
-     */
-    function setMultiplier(uint256 multiplier_) external onlySponsor {
-        _canConfigure();
-        require(multiplier_ > 1e18, "SRG032");
-        multiplier = multiplier_;
-    }
-
-    /**
-     * @notice Transfer rewards to the deal
+     * @notice Deposit delivery tokens to the deal
      * @param amount The amount of tokens to transfer
      */
-    function transferRewards(uint256 amount) external nonReentrant onlySponsor {
-        require(address(rewardToken) != ADDRESS_ZERO, "SRG014");
-        rewardToken.safeTransferFrom(sponsor, address(this), amount);
-        distributionAmount += amount;
+    function depositDeliveryTokens(uint256 amount) external nonReentrant onlySponsor {
+        require(address(deliveryToken) != ADDRESS_ZERO, "SRG014");
+        deliveryToken.safeTransferFrom(sponsor, address(this), amount);
+        deliveryAmount += amount;
     }
 
     /**
-     * @notice Recover rewards from the deal
+     * @notice Recover delivery tokens from the deal
      */
-    function recoverRewards() external nonReentrant onlySponsor {
+    function recoverDeliveryTokens() external nonReentrant onlySponsor {
         require(state() == State.Closed || state() == State.Canceled, "SRG033");
-        rewardToken.safeTransfer(sponsor, rewardToken.balanceOf(address(this)));
+        deliveryToken.safeTransfer(sponsor, deliveryToken.balanceOf(address(this)));
     }
 
     /**
-     * @notice Set the reward token
-     * @param rewardToken_ The address of the reward token
+     * @notice Set the delivery token
+     * @param deliveryToken_ The address of the delivery token
      */
-    function setRewardToken(address rewardToken_) external onlySponsor {
-        require(address(rewardToken_) != ADDRESS_ZERO, "SRG014");
-        rewardToken = IERC20Metadata(rewardToken_);
+    function setDeliveryToken(address deliveryToken_) external onlySponsor {
+        require(address(deliveryToken_) != ADDRESS_ZERO, "SRG014");
+        deliveryToken = IERC20Metadata(deliveryToken_);
     }
 
     /**
@@ -534,9 +475,9 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         if(amount > 0) {
             claimedAmount[tokenId] = amount;
             totalClaimed += amount;
-            if(distributionAmount > 0) {
-                uint256 bonus = getRewardsOf(tokenId, maximum);
-                if(bonus > 0) rewardToken.safeTransfer(staker, bonus);
+            if(deliveryAmount > 0) {
+                uint256 bonus = getDeliveryTokensFor(tokenId, maximum);
+                if(bonus > 0) deliveryToken.safeTransfer(staker, bonus);
             }
 
             AccountV3TBD tokenBoundAccount = getTokenBoundAccount(tokenId);
@@ -595,38 +536,42 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     /**
      * @notice Get the bonus for a particular stake
      * @param tokenId The index of the stake
-     * @dev bonus is in 1eN precision, where N is the decimals of the reward token
-     * @dev T = total amount to be distributed
+     * @dev bonus is in 1eN precision, where N is the decimals of the delivery token
+     * @dev T = total amount to be delivered
      * @dev M = first bonus discount
      * @dev C = deal maximum
      * @dev L = last stake
      * @dev X = sum of previous stakes
-     * @dev R = rewards
+     * @dev R = amount of delivery tokens received
      * @dev K1, K2, constants
      */
-    function getRewardsOf(uint256 tokenId, uint256 maximum) public view returns(uint256) {
+    function getDeliveryTokensFor(uint256 tokenId, uint256 maximum) public view returns(uint256) {
         if (tokenId >= _tokenId) return 0;
 
         uint256 L = stakedAmount[tokenId];
-        uint256 T = distributionAmount;
-        uint256 M = multiplier;
+        uint256 T = deliveryAmount;
+        uint256 M = multiple;
         uint256 C = maximum;
 
         if(T == 0 || L == 0 || M == 0) return 0;
-        
+
         uint256 S = _totalStaked(tokenId);
         uint256 X = S - L;
+
+        if(multiple == 1e18) { // if no discount
+            return L * T / S; // stakedAmount * deliveryAmount / totalStaked
+        }
 
         if (S > C) { // dealMaximum was reached - calculate bonus for a partial stake
             L = C > X ? C - X : 0;
         }
 
         uint256 lnM = intoUint256(ln(ud(M)));
-        uint256 k1 = (T * 1e18) / lnM; // ends up with reward decimals
+        uint256 k1 = (T * 1e18) / lnM; // ends up with delivery decimals
         uint256 k2 = C * 1e18 / (M - 1e18); // ends up with escrow decimals
         uint256 k3 = 1e18 + (L * 1e18 / (X + k2)); // ends up with precision 1e18
 
-        uint256 result = k1 * intoUint256(ln(ud(k3))) / 1e18; // result has reward token decimals
+        uint256 result = k1 * intoUint256(ln(ud(k3))) / 1e18; // result has delivery token decimals
         return result;
     }
 
