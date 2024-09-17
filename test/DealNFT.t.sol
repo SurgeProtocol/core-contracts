@@ -63,7 +63,7 @@ contract DealNFTTest is Test, DealSetup {
     }
 
     function test_Claim() public {
-        _transferRewards();
+        _depositDeliveryTokens();
         _stake(staker1);
         assertEq(uint256(deal.state()), uint256(DealNFT.State.Active));
 

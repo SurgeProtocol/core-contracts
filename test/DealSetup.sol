@@ -71,12 +71,12 @@ contract DealSetup is Test {
 
     function _setup() internal {
         vm.prank(sponsor);
-        deal.setup(address(escrowToken), 30 minutes, 50000, "https://test1.com", "https://test2.com", "https://test3.com");
+        deal.setup(address(escrowToken), 30 minutes, 50000, "https://social", "https://website", "https://image", "");
     }
 
     function _configure() internal {
         vm.prank(sponsor);
-        deal.configure("desc", block.timestamp + 2 weeks, 0, 2000000, address(0));
+        deal.configure("desc", "https://social", "https://website", block.timestamp + 2 weeks, 0, 2000000, address(0));
     }
 
     function _activate() internal {
@@ -84,12 +84,12 @@ contract DealSetup is Test {
         deal.activate();
     }
 
-    function _transferRewards() internal {
+    function _depositDeliveryTokens() internal {
         vm.startPrank(sponsor);
-        deal.setRewardToken(address(escrowToken));
-        deal.setMultiplier(5e18);
+        deal.setDeliveryToken(address(escrowToken));
+        deal.setMultiple(5e18);
         escrowToken.approve(address(deal), amount*3);
-        deal.transferRewards(amount*3);
+        deal.depositDeliveryTokens(amount*3);
         vm.stopPrank();
     }
 }

@@ -17,7 +17,7 @@ contract DealNFTClaimTest is Test, DealSetup {
         arbitrator = vm.addr(9);
 
         vm.prank(sponsor);
-        deal.configure("desc", block.timestamp + 2 weeks, amount, amount*2, arbitrator);
+        deal.configure("desc", "https://social", "https://website", block.timestamp + 2 weeks, amount, amount*2, arbitrator);
 
         _stake(staker1);
         _stake(staker2);

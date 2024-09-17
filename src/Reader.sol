@@ -4,7 +4,7 @@ pragma solidity ^0.8.25;
 import {IERC20Metadata} from "openzeppelin/token/ERC20/extensions/IERC20Metadata.sol";
 import {IDeal} from "./interfaces/IDeal.sol";
 
-contract Reader{
+contract Reader {
 
     function getDeal(address dealAddress) external view returns (IDeal.DealData memory deal) {
         IDeal dealInstance = IDeal(dealAddress);
@@ -32,18 +32,18 @@ contract Reader{
             stakersWhitelist: dealInstance.stakersWhitelist(),
             claimsWhitelist: dealInstance.claimsWhitelist(),
             escrowToken: dealInstance.escrowToken(),
-            rewardToken: dealInstance.rewardToken(),
+            deliveryToken: dealInstance.deliveryToken(),
             closingTime: dealInstance.closingTime(),
             closingDelay: dealInstance.closingDelay(),
             totalClaimed: dealInstance.totalClaimed(),
             totalStaked: dealInstance.totalStaked(),
-            multiplier: dealInstance.multiplier(),
+            multiple: dealInstance.multiple(),
             dealMinimum: dealInstance.dealMinimum(),
             dealMaximum: dealInstance.dealMaximum(),
             unstakingFee: dealInstance.unstakingFee(),
             nextId: _nextId,
             state: dealInstance.state(),
-            twitter: dealInstance.twitter(),
+            social: dealInstance.social(),
             description: dealInstance.description(),
             website: dealInstance.website(),
             name: dealInstance.name(),

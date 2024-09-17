@@ -27,21 +27,21 @@ contract ReaderTest is Test, DealSetup {
         assertEq(address(deal.stakersWhitelist), address(0));
         assertEq(address(deal.claimsWhitelist), address(0));
         assertEq(address(deal.escrowToken), address(escrowToken));
-        assertEq(address(deal.rewardToken), address(0));
+        assertEq(address(deal.deliveryToken), address(0));
 
         // assertEq(deal.closingTime, 0);
         assertEq(deal.closingDelay, 30 minutes);
         assertEq(deal.totalClaimed, 0);
         assertEq(deal.totalStaked, 2000000);
-        assertEq(deal.multiplier, 5e18);
+        assertEq(deal.multiple, 1e18);
         assertEq(deal.dealMinimum, 0);
         assertEq(deal.dealMaximum, 2000000);
         assertEq(deal.unstakingFee, 50000);
         assertEq(deal.nextId, 2);
         assertEq(uint256(deal.state), uint256(DealNFT.State.Active));
-        assertEq(deal.website, "https://test1.com");
-        assertEq(deal.twitter, "https://test2.com");
-        assertEq(deal.image, "https://test3.com");
+        assertEq(deal.website, "https://website");
+        assertEq(deal.social, "https://social");
+        assertEq(deal.image, "https://image");
         assertEq(deal.description, "desc");
         assertEq(deal.name, "SurgeDealTEST");
         assertEq(deal.symbol, "SRGTEST");
@@ -68,13 +68,13 @@ contract ReaderTest is Test, DealSetup {
         _initialize();
         IDeal.DealShortData memory deal = reader.getShortDeal(address(deal));
         assertEq(deal.name, "SurgeDealTEST");
-        assertEq(deal.image, "https://test3.com");
+        assertEq(deal.image, "https://image");
         assertEq(deal.symbol, "SRGTEST");
         assertEq(uint256(deal.state), uint256(DealNFT.State.Active));
         assertEq(deal.description, "desc");
     }
 
-    function test_GetDeal_EmptyDeal() public {
+    function test_GetDeal_EmptyDeal() public view {
         IDeal.DealData memory deal = reader.getDeal(address(deal));
 
         assertEq(deal.sponsor, sponsor);
@@ -82,20 +82,20 @@ contract ReaderTest is Test, DealSetup {
         assertEq(address(deal.stakersWhitelist), address(0));
         assertEq(address(deal.claimsWhitelist), address(0));
         assertEq(address(deal.escrowToken), address(0));
-        assertEq(address(deal.rewardToken), address(0));
+        assertEq(address(deal.deliveryToken), address(0));
 
         // assertEq(deal.closingTime, 0);
         assertEq(deal.closingDelay, 0);
         assertEq(deal.totalClaimed, 0);
         assertEq(deal.totalStaked, 0);
-        assertEq(deal.multiplier, 5e18);
+        assertEq(deal.multiple, 1e18);
         assertEq(deal.dealMinimum, 0);
         assertEq(deal.dealMaximum, 0);
         assertEq(deal.unstakingFee, 0);
         assertEq(deal.nextId, 0);
         assertEq(uint256(deal.state), uint256(DealNFT.State.Setup));
         assertEq(deal.website, "");
-        assertEq(deal.twitter, "");
+        assertEq(deal.social, "");
         assertEq(deal.image, "");
         assertEq(deal.description, "");
         assertEq(deal.name, "SurgeDealTEST");

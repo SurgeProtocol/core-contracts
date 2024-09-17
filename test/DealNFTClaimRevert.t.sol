@@ -53,7 +53,7 @@ contract DealNFTClaimTest is Test, DealSetup {
     }
 
     function test_RevertWhen_ClaimOutOfBounds() public {
-        _transferRewards();
+        _depositDeliveryTokens();
         _stake(staker1);
         _stake(staker2);
         skip(15 days);
@@ -68,7 +68,7 @@ contract DealNFTClaimTest is Test, DealSetup {
 
     function test_RevertWhen_ClaimMinimumNotReached() public {
         vm.prank(sponsor);
-        deal.configure("lorem ipsum", block.timestamp + 2 weeks, 2500000, 3000000, address(0));
+        deal.configure("lorem ipsum", "https://social", "https://website", block.timestamp + 2 weeks, 2500000, 3000000, address(0));
         _stake(staker1);
         _stake(staker2);
         skip(15 days);
@@ -78,33 +78,33 @@ contract DealNFTClaimTest is Test, DealSetup {
         deal.claim();
     }
 
-    function test_RevertWhen_SetRewardTokenNotSponsor() public {
+    function test_RevertWhen_SetDeliveryTokenNotSponsor() public {
         vm.expectRevert("SRG020");
         vm.prank(staker1);
-        deal.setRewardToken(address(0));
+        deal.setDeliveryToken(address(0));
     }
 
-    function test_RevertWhen_TransferRewardsNotSponsor() public {
+    function test_RevertWhen_DepositDeliveryTokensNotSponsor() public {
         vm.expectRevert("SRG020");
         vm.prank(staker1);
-        deal.transferRewards(1);
+        deal.depositDeliveryTokens(1);
     }
 
-    function test_RevertWhen_RecoverRewardsNotSponsor() public {
+    function test_RevertWhen_RecoverDeliveryTokensNotSponsor() public {
         vm.expectRevert("SRG020");
         vm.prank(staker1);
-        deal.recoverRewards();
+        deal.recoverDeliveryTokens();
     }
 
     function test_RevertWhen_StateIsNotClosed() public {
         vm.expectRevert("SRG033");
         vm.prank(sponsor);
-        deal.recoverRewards();
+        deal.recoverDeliveryTokens();
     }
 
-    function test_RevertWhen_RewardsTokenNotSet() public {
+    function test_RevertWhen_DeliveryTokenNotSet() public {
         vm.expectRevert("SRG014");
         vm.prank(sponsor);
-        deal.transferRewards(1);
+        deal.depositDeliveryTokens(1);
     }
 }
