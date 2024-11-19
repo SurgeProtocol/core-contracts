@@ -73,11 +73,11 @@ contract DealNFTTest is Test, DealSetup {
         vm.expectEmit(address(deal));
         emit DealNFT.Claim(staker1, tokenId, amount);
 
-        vm.prank(sponsor);
+        vm.prank(arbitrator);
         deal.claim();
 
         assertEq(deal.stakedAmount(tokenId), amount);
-        assertEq(escrowToken.balanceOf(sponsor), 970000);
+        assertEq(escrowToken.balanceOf(arbitrator), 970000);
         assertEq(escrowToken.balanceOf(treasury), 30000);
         assertEq(escrowToken.balanceOf(address(deal.getTokenBoundAccount(tokenId))), 0);
         assertEq(deal.totalStaked(), amount);

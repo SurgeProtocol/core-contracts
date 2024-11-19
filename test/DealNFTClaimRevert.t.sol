@@ -13,8 +13,8 @@ contract DealNFTClaimTest is Test, DealSetup {
         _activate();
     }
 
-    function test_RevertWhen_ClaimNotSponsor() public {
-        vm.expectRevert("SRG020");
+    function test_RevertWhen_ClaimNotArbitrator() public {
+        vm.expectRevert("SRG021");
         vm.prank(staker1);
         deal.claim();
     }
@@ -24,7 +24,7 @@ contract DealNFTClaimTest is Test, DealSetup {
         _stake(staker2);
         
         vm.expectRevert("SRG044");
-        vm.prank(sponsor);
+        vm.prank(arbitrator);
         deal.claim();
     }
 
@@ -34,7 +34,7 @@ contract DealNFTClaimTest is Test, DealSetup {
         skip(22 days);
 
         vm.expectRevert("SRG044");
-        vm.prank(sponsor);
+        vm.prank(arbitrator);
         deal.claim();
     }
 
@@ -48,7 +48,7 @@ contract DealNFTClaimTest is Test, DealSetup {
         assertEq(uint256(deal.state()), uint256(DealNFT.State.Canceled));
 
         vm.expectRevert("SRG044");
-        vm.prank(sponsor);
+        vm.prank(arbitrator);
         deal.claim();
     }
 
@@ -58,7 +58,7 @@ contract DealNFTClaimTest is Test, DealSetup {
         _stake(staker2);
         skip(15 days);
 
-        vm.startPrank(sponsor);
+        vm.startPrank(arbitrator);
         deal.claim();
         
         vm.expectRevert("SRG043");
@@ -68,13 +68,13 @@ contract DealNFTClaimTest is Test, DealSetup {
 
     function test_RevertWhen_ClaimMinimumNotReached() public {
         vm.prank(sponsor);
-        deal.configure("lorem ipsum", "https://social", "https://website", block.timestamp + 2 weeks, 2500000, 3000000, address(0));
+        deal.configure("lorem ipsum", "https://social", "https://website", block.timestamp + 2 weeks, 2500000, 3000000);
         _stake(staker1);
         _stake(staker2);
         skip(15 days);
 
         vm.expectRevert("SRG045");
-        vm.prank(sponsor);
+        vm.prank(arbitrator);
         deal.claim();
     }
 

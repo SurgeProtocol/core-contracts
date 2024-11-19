@@ -20,15 +20,17 @@ contract DealSetup is Test {
     uint256 amount = 1000000;
     address sponsor;
     address treasury;
+    address arbitrator;
     address staker1;
     address staker2;
 
     function _init() internal {
         sponsor = vm.addr(1);
         treasury = vm.addr(2);
+        arbitrator = vm.addr(3);
 
-        staker1 = vm.addr(3);
-        staker2 = vm.addr(4);
+        staker1 = vm.addr(4);
+        staker2 = vm.addr(5);
 
         escrowToken = new ERC20PresetFixedSupply("escrow", "escrow", 5000000, address(this));
         escrowToken.transfer(address(staker1), amount);
@@ -56,6 +58,9 @@ contract DealSetup is Test {
             "https://test.com"
         );
 
+        vm.prank(treasury);
+        deal.setArbitrator(arbitrator);
+
         vm.prank(staker1);
         escrowToken.approve(address(deal), amount);
 
@@ -76,7 +81,7 @@ contract DealSetup is Test {
 
     function _configure() internal {
         vm.prank(sponsor);
-        deal.configure("desc", "https://social", "https://website", block.timestamp + 2 weeks, 0, 2000000, address(0));
+        deal.configure("desc", "https://social", "https://website", block.timestamp + 2 weeks, 0, 2000000);
     }
 
     function _activate() internal {

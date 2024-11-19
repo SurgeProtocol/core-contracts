@@ -20,6 +20,7 @@ contract DealNFTClaimTest is Test {
     uint256 amount = 100e8;
     address sponsor;
     address treasury;
+    address arbitrator;
     address staker1;
     address staker2;
     address staker3;
@@ -31,13 +32,14 @@ contract DealNFTClaimTest is Test {
     function setUp() public {
         sponsor = vm.addr(1);
         treasury = vm.addr(2);
-        staker1 = vm.addr(3);
-        staker2 = vm.addr(4);
-        staker3 = vm.addr(5);
-        staker4 = vm.addr(6);
-        staker5 = vm.addr(7);
-        staker6 = vm.addr(8);
-        staker7 = vm.addr(9);
+        arbitrator = vm.addr(3);
+        staker1 = vm.addr(4);
+        staker2 = vm.addr(5);
+        staker3 = vm.addr(6);
+        staker4 = vm.addr(7);
+        staker5 = vm.addr(8);
+        staker6 = vm.addr(9);
+        staker7 = vm.addr(10);
 
         escrowToken = new EscrowToken("escrow", "escrow", 10000e8, address(this));
         deliveryToken = new DeliveryToken("delivery", "delivery", 10000e12, address(this));
@@ -72,6 +74,9 @@ contract DealNFTClaimTest is Test {
             "https://test.com"
         );
 
+        vm.prank(treasury);
+        deal.setArbitrator(arbitrator);
+
         vm.prank(staker1);
         escrowToken.approve(address(deal), amount);
         vm.prank(staker2);
@@ -89,14 +94,14 @@ contract DealNFTClaimTest is Test {
 
         vm.startPrank(sponsor);
         deal.setup(address(escrowToken), 30 minutes, 50000, "https://social", "https://website", "https://image", "desc");
-        deal.configure("desc", "https://social", "https://website", block.timestamp + 2 weeks, 0, 2000000, address(0));
+        deal.configure("desc", "https://social", "https://website", block.timestamp + 2 weeks, 0, 2000000);
         deal.activate();
         vm.stopPrank();
     }
 
     function test_Claim() public {
         vm.startPrank(sponsor);
-        deal.configure("desc", "https://social", "https://website", block.timestamp + 2 weeks, 50e8, 150e8, address(0));
+        deal.configure("desc", "https://social", "https://website", block.timestamp + 2 weeks, 50e8, 150e8);
         deal.setMultiple(5e18);
         deal.setDeliveryToken(address(deliveryToken));
         deliveryToken.approve(address(deal), 10000e12);
@@ -115,14 +120,14 @@ contract DealNFTClaimTest is Test {
         vm.expectEmit(address(deal));
         emit DealNFT.Claim(staker2, 1, 50e8);
 
-        vm.prank(sponsor);
+        vm.prank(arbitrator);
         deal.claim();
 
         assertEq(deal.stakedAmount(0), amount);
         assertEq(deal.stakedAmount(1), amount);
         assertEq(escrowToken.balanceOf(address(deal.getTokenBoundAccount(0))), 0);
         assertEq(escrowToken.balanceOf(address(deal.getTokenBoundAccount(1))), 50e8);
-        assertEq(escrowToken.balanceOf(sponsor), 1455e7);
+        assertEq(escrowToken.balanceOf(arbitrator), 1455e7);
         assertEq(escrowToken.balanceOf(treasury), 45e7);
         assertEq(deal.totalStaked(), 200e8);
         assertEq(deal.totalClaimed(), 150e8);
@@ -137,7 +142,7 @@ contract DealNFTClaimTest is Test {
         _stake(staker3, stakeAmount*3);
 
         skip(15 days);
-        vm.prank(sponsor);
+        vm.prank(arbitrator);
         deal.claim();
 
         assertEq(deal.stakedAmount(0), stakeAmount);
@@ -194,7 +199,7 @@ contract DealNFTClaimTest is Test {
         assertEq(deliveryToken.balanceOf(staker7), 0);
 
         skip(15 days);
-        vm.prank(sponsor);
+        vm.prank(arbitrator);
         deal.claim();
 
         assertEq(deliveryToken.balanceOf(staker1), bonus0);
@@ -242,7 +247,7 @@ contract DealNFTClaimTest is Test {
         assertEq(deliveryToken.balanceOf(staker7), 0);
 
         skip(15 days);
-        vm.prank(sponsor);
+        vm.prank(arbitrator);
         deal.claim();
 
         assertEq(deliveryToken.balanceOf(staker1), bonus0);
@@ -300,7 +305,7 @@ contract DealNFTClaimTest is Test {
         assertEq(deliveryToken.balanceOf(staker5), 0);
 
         skip(15 days);
-        vm.prank(sponsor);
+        vm.prank(arbitrator);
         deal.claim();
 
         assertEq(deliveryToken.balanceOf(staker1), bonus0);
@@ -312,7 +317,7 @@ contract DealNFTClaimTest is Test {
 
     function _setup(uint256 delivery, uint256 multiple) internal {
         vm.startPrank(sponsor);
-        deal.configure("desc", "https://social", "https://website", block.timestamp + 2 weeks, 50e8, 100e8, address(0));
+        deal.configure("desc", "https://social", "https://website", block.timestamp + 2 weeks, 50e8, 100e8);
         deal.setDeliveryToken(address(deliveryToken));
         deal.setMultiple(multiple);
         deliveryToken.approve(address(deal), 10000e12);

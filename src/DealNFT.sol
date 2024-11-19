@@ -17,6 +17,7 @@ import {UD60x18, ud, ln, intoUint256} from "prb/UD60x18.sol";
  * @title DealNFT
  * @notice Contract for managing NFT-based deals
  * @dev Error codes:
+ * SRG000: arbitrator is zero
  * SRG001: registry is zero
  * SRG002: implementation is zero
  * SRG003: sponsor is zero
@@ -34,6 +35,7 @@ import {UD60x18, ud, ln, intoUint256} from "prb/UD60x18.sol";
  * SRG015: invalid amount
  * SRG016: invalid closing time
  *
+ * SRG019: only treasury
  * SRG020: only sponsor
  * SRG021: only arbitrator
  * SRG022: only token owner
@@ -67,7 +69,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
 
     // Events
     event Setup(address escrowToken, uint256 closingDelay, uint256 unstakingFee, string web, string social, string image, string description, State state);
-    event Configure(string description, string social, string website, uint256 closingTime, uint256 dealMinimum, uint256 dealMaximum, address arbitrator, State state);
+    event Configure(string description, string social, string website, uint256 closingTime, uint256 dealMinimum, uint256 dealMaximum, State state);
     event Transferable(bool transferable);
     event SetStakersWhitelist(address whitelist);
     event SetClaimsWhitelist(address whitelist);
@@ -91,7 +93,6 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     bool private _canceled;
     bool private _active;
     bool public transferable;
-    bool public claimApproved;
 
     address public immutable sponsor;
     address public immutable treasury;
@@ -109,7 +110,6 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     uint256 public multiple;
     uint256 public deliveryAmount;
     uint256 public totalClaimed;
-    uint256 public chainMaximum;
 
     IERC20Metadata public escrowToken;
     IERC20Metadata public deliveryToken;
@@ -170,6 +170,14 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         treasury = treasury_;
         multiple = 1e18;
         _base = string.concat(baseURI_, "/chain/", block.chainid.toString(), "/deal/", address(this).toHexString(), "/token/");
+    }
+
+    /**
+     * @notice Modifier to check the caller is the treasury
+     */
+    modifier onlyTreasury() {
+        require(msg.sender == treasury, "SRG019");
+        _;
     }
 
     /**
@@ -263,7 +271,6 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @param closingTime_ Closing time of the deal
      * @param dealMinimum_ Minimum amount of tokens required for the deal
      * @param dealMaximum_ Maximum amount of tokens allowed for the deal
-     * @param arbitrator_ Address of the arbitrator
     */
     function configure(
         string memory description_,
@@ -271,8 +278,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         string memory website_,
         uint256 closingTime_,
         uint256 dealMinimum_,
-        uint256 dealMaximum_,
-        address arbitrator_
+        uint256 dealMaximum_
     ) external onlySponsor {
         _canConfigure();
         _validClosingTime(closingTime_);
@@ -284,9 +290,14 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         closingTime = closingTime_;
         dealMinimum = dealMinimum_;
         dealMaximum = dealMaximum_;
-        arbitrator = arbitrator_;
 
-        emit Configure(description, social, website, closingTime, dealMinimum, dealMaximum, arbitrator, State.Active);
+        emit Configure(description, social, website, closingTime, dealMinimum, dealMaximum, State.Active);
+    }
+
+    function setArbitrator(address arbitrator_) external onlyTreasury {
+        require(arbitrator_ != ADDRESS_ZERO, "SRG000");
+        arbitrator = arbitrator_;
+        emit ArbitratorUpdated(arbitrator_);
     }
 
     /**
@@ -337,20 +348,6 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
 
         transferable = transferable_;
         emit Transferable(transferable_);
-    }
-
-    /**
-     * @notice Approve the claim of the deal
-     */
-    function approveClaim() external onlyArbitrator {
-        claimApproved = true;
-    }
-
-    /**
-     * @notice Set the maximum amount of tokens allowed for the deal
-     */
-    function setChainMaximum(uint256 maximum) external onlyArbitrator {
-        chainMaximum = maximum;
     }
 
     /**
@@ -440,7 +437,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     /**
      * @notice Claim tokens from the deal
      */
-    function claim() external nonReentrant onlySponsor {
+    function claim() external nonReentrant onlyArbitrator {
         _canClaim();
         uint maximum = Math.min(dealMaximum, _totalStaked(_tokenId));
         while(_claimId < _tokenId) {
@@ -452,7 +449,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     /**
      * @notice Claim the next token id from the deal
      */
-    function claimNext() external nonReentrant onlySponsor {
+    function claimNext() external nonReentrant onlyArbitrator {
         _canClaim();
         uint maximum = Math.min(dealMaximum, _totalStaked(_tokenId));
         _claimNext(maximum);
@@ -471,9 +468,8 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
             return;
         }
 
-        uint256 chainMaximum_ = chainMaximum > 0 ? chainMaximum : dealMaximum;
-        if(totalClaimed + amount > chainMaximum_) {
-            amount = chainMaximum_ - totalClaimed;
+        if(totalClaimed + amount > dealMaximum) {
+            amount = dealMaximum - totalClaimed;
         }
 
         if(amount > 0) {
@@ -487,7 +483,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
             AccountV3TBD tokenBoundAccount = getTokenBoundAccount(tokenId);
             uint256 fee = amount.mulDiv(CLAIMING_FEE, PRECISION);
 
-            tokenBoundAccount.send(sponsor, amount - fee);
+            tokenBoundAccount.send(arbitrator, amount - fee);
             tokenBoundAccount.send(treasury, fee);
 
             emit Claim(staker, tokenId, amount);
@@ -678,7 +674,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @notice Function to check claim requirements
      */
     function _canClaim() internal view {
-        require(arbitrator == ADDRESS_ZERO || claimApproved, "SRG042");
+        require(arbitrator != ADDRESS_ZERO, "SRG000");
         require(_claimId < _tokenId, "SRG043");
         require(state() == State.Claiming, "SRG044");
         require(_totalStaked(_tokenId) >= dealMinimum, "SRG045");

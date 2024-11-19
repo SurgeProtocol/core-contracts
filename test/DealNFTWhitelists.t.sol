@@ -71,9 +71,9 @@ contract DealNFTWhitelistsTest is Test, DealSetup {
         assertEq(deal.totalStaked(), amount);
 
         skip(15 days);
-        vm.prank(sponsor);
+        vm.prank(arbitrator);
         deal.claim();
 
-        assertEq(escrowToken.balanceOf(sponsor), 970000);
+        assertEq(escrowToken.balanceOf(arbitrator), 970000);
     }
 }

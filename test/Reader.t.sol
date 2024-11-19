@@ -23,7 +23,7 @@ contract ReaderTest is Test, DealSetup {
         IERC20Metadata escrow = IERC20Metadata(address(escrowToken));
 
         assertEq(deal.sponsor, sponsor);
-        assertEq(deal.arbitrator, address(0));
+        assertEq(deal.arbitrator, arbitrator);
         assertEq(address(deal.stakersWhitelist), address(0));
         assertEq(address(deal.claimsWhitelist), address(0));
         assertEq(address(deal.escrowToken), address(escrowToken));
@@ -78,7 +78,7 @@ contract ReaderTest is Test, DealSetup {
         IDeal.DealData memory deal = reader.getDeal(address(deal));
 
         assertEq(deal.sponsor, sponsor);
-        assertEq(deal.arbitrator, address(0));
+        assertEq(deal.arbitrator, arbitrator);
         assertEq(address(deal.stakersWhitelist), address(0));
         assertEq(address(deal.claimsWhitelist), address(0));
         assertEq(address(deal.escrowToken), address(0));

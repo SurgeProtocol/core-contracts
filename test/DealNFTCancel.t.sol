@@ -19,9 +19,8 @@ contract DealNFTCancelTest is Test, DealSetup {
     }
 
     function test_CancelByArbitrator() public {
-        address arbitrator = vm.addr(5);
         vm.prank(sponsor);
-        deal.configure("desc", "https://social", "https://website", block.timestamp + 2 weeks, 0, 2000000, arbitrator);
+        deal.configure("desc", "https://social", "https://website", block.timestamp + 2 weeks, 0, 2000000);
 
         vm.prank(arbitrator);
         deal.cancel();
