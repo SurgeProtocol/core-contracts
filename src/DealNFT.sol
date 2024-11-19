@@ -49,7 +49,7 @@ import {UD60x18, ud, ln, intoUint256} from "prb/UD60x18.sol";
  * SRG036: not an active deal
  * SRG037: whitelist error
  * SRG038: cannot unstake after claiming/closed/canceled
- * SRG039: cannot recover before closed/canceled
+ * SRG039: cannot recover before closed/canceled/claiming
  * SRG040: not transferable
  * SRG041: whitelist error
  * SRG042: claim not approved
@@ -423,7 +423,11 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @param tokenId The ID of the token to recover
      */
     function recover(uint256 tokenId) external nonReentrant onlyTokenOwner(tokenId) { 
-        require(state() >= State.Closed, "SRG039");
+        require(state() >= State.Claiming, "SRG039");
+
+        if(state() == State.Claiming) {
+            require(_totalStaked(_tokenId) < dealMinimum, "SRG046");
+        }
 
         AccountV3TBD tokenBoundAccount = getTokenBoundAccount(tokenId);
         uint256 balance = escrowToken.balanceOf(address(tokenBoundAccount));

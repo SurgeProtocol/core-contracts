@@ -29,7 +29,7 @@ contract DealNFTRecoverTest is Test, DealSetup {
         skip(15 days);
         assertEq(uint256(deal.state()), uint256(DealNFT.State.Claiming));
 
-        vm.expectRevert("SRG039");
+        vm.expectRevert("SRG046");
         vm.prank(staker1);
         deal.recover(0);
     }
