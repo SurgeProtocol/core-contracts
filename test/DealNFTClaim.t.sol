@@ -51,7 +51,7 @@ contract DealNFTClaimTest is Test {
         escrowToken.transfer(address(staker5), amount);
         escrowToken.transfer(address(staker6), amount);
         escrowToken.transfer(address(staker7), amount);
-        deliveryToken.transfer(address(sponsor), 10000e12);
+        deliveryToken.transfer(address(arbitrator), 10000e12);
 
         ERC6551Registry registry = new ERC6551Registry();
         Multicall3 forwarder = new Multicall3();
@@ -102,12 +102,15 @@ contract DealNFTClaimTest is Test {
     }
 
     function test_Claim() public {
-        vm.startPrank(sponsor);
-        deal.configure("desc", "https://social", "https://website", block.timestamp + 2 weeks, 50e8, 150e8);
-        deal.setMultiple(5e18);
+        vm.startPrank(arbitrator);
         deal.setDeliveryToken(address(deliveryToken));
         deliveryToken.approve(address(deal), 10000e12);
         deal.depositDeliveryTokens(10000e12);
+        vm.stopPrank();
+
+        vm.startPrank(sponsor);
+        deal.configure("desc", "https://social", "https://website", block.timestamp + 2 weeks, 50e8, 150e8);
+        deal.setMultiple(5e18);
         vm.stopPrank();
 
         _stake(staker1, amount);
@@ -318,12 +321,15 @@ contract DealNFTClaimTest is Test {
     }
 
     function _setup(uint256 delivery, uint256 multiple) internal {
-        vm.startPrank(sponsor);
-        deal.configure("desc", "https://social", "https://website", block.timestamp + 2 weeks, 50e8, 100e8);
+        vm.startPrank(arbitrator);
         deal.setDeliveryToken(address(deliveryToken));
-        deal.setMultiple(multiple);
         deliveryToken.approve(address(deal), 10000e12);
         if(delivery > 0) deal.depositDeliveryTokens(delivery);
+        vm.stopPrank();
+
+        vm.startPrank(sponsor);
+        deal.configure("desc", "https://social", "https://website", block.timestamp + 2 weeks, 50e8, 100e8);
+        deal.setMultiple(multiple);
         vm.stopPrank();
     }
 

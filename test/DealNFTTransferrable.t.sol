@@ -18,7 +18,7 @@ contract DealNFTTransferTest is Test, DealSetup {
         vm.expectEmit(address(deal));
         emit DealNFT.Transferable(true);
 
-        vm.prank(sponsor);
+        vm.prank(arbitrator);
         deal.setTransferable(true);
 
         _stake(staker1);
@@ -37,8 +37,10 @@ contract DealNFTTransferTest is Test, DealSetup {
     function test_RevertWhen_TransferNFT_toNotApproved() public {
         Whitelists whitelist = new Whitelists(address(sponsor));
 
-        vm.startPrank(sponsor);
+        vm.prank(arbitrator);
         deal.setTransferable(true);
+        
+        vm.startPrank(sponsor);
         deal.setStakersWhitelist(address(whitelist));
         deal.setClaimsWhitelist(address(whitelist));
         whitelist.approveStaker(staker1, amount);
@@ -53,7 +55,7 @@ contract DealNFTTransferTest is Test, DealSetup {
     }
 
     function test_RevertWhen_TransferNFT() public {
-        vm.prank(sponsor);
+        vm.prank(arbitrator);
         deal.setTransferable(false);
         _stake(staker1);
         assertEq(deal.ownerOf(tokenId), staker1);

@@ -319,25 +319,25 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @notice Deposit delivery tokens to the deal
      * @param amount The amount of tokens to transfer
      */
-    function depositDeliveryTokens(uint256 amount) external nonReentrant onlySponsor {
+    function depositDeliveryTokens(uint256 amount) external nonReentrant onlyArbitrator {
         require(address(deliveryToken) != ADDRESS_ZERO, "SRG014");
-        deliveryToken.safeTransferFrom(sponsor, address(this), amount);
+        deliveryToken.safeTransferFrom(arbitrator, address(this), amount);
         deliveryAmount += amount;
     }
 
     /**
      * @notice Recover delivery tokens from the deal
      */
-    function recoverDeliveryTokens() external nonReentrant onlySponsor {
+    function recoverDeliveryTokens() external nonReentrant onlyArbitrator {
         require(state() == State.Closed || state() == State.Canceled, "SRG033");
-        deliveryToken.safeTransfer(sponsor, deliveryToken.balanceOf(address(this)));
+        deliveryToken.safeTransfer(arbitrator, deliveryToken.balanceOf(address(this)));
     }
 
     /**
      * @notice Set the delivery token
      * @param deliveryToken_ The address of the delivery token
      */
-    function setDeliveryToken(address deliveryToken_) external onlySponsor {
+    function setDeliveryToken(address deliveryToken_) external onlyArbitrator {
         require(address(deliveryToken_) != ADDRESS_ZERO, "SRG014");
         deliveryToken = IERC20Metadata(deliveryToken_);
     }
@@ -346,7 +346,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @notice Set whether the NFTs are transferable or not
      * @param transferable_ Boolean indicating if NFTs are transferable
      */
-    function setTransferable(bool transferable_) external onlySponsor {
+    function setTransferable(bool transferable_) external onlyArbitrator {
         require(state() != State.Canceled, "SRG034");
         require(!_afterClosed(), "SRG034");
 

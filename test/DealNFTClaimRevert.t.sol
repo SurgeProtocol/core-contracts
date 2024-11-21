@@ -79,32 +79,32 @@ contract DealNFTClaimTest is Test, DealSetup {
     }
 
     function test_RevertWhen_SetDeliveryTokenNotSponsor() public {
-        vm.expectRevert("SRG020");
+        vm.expectRevert("SRG021");
         vm.prank(staker1);
         deal.setDeliveryToken(address(0));
     }
 
     function test_RevertWhen_DepositDeliveryTokensNotSponsor() public {
-        vm.expectRevert("SRG020");
+        vm.expectRevert("SRG021");
         vm.prank(staker1);
         deal.depositDeliveryTokens(1);
     }
 
     function test_RevertWhen_RecoverDeliveryTokensNotSponsor() public {
-        vm.expectRevert("SRG020");
+        vm.expectRevert("SRG021");
         vm.prank(staker1);
         deal.recoverDeliveryTokens();
     }
 
     function test_RevertWhen_StateIsNotClosed() public {
         vm.expectRevert("SRG033");
-        vm.prank(sponsor);
+        vm.prank(arbitrator);
         deal.recoverDeliveryTokens();
     }
 
     function test_RevertWhen_DeliveryTokenNotSet() public {
         vm.expectRevert("SRG014");
-        vm.prank(sponsor);
+        vm.prank(arbitrator);
         deal.depositDeliveryTokens(1);
     }
 }
