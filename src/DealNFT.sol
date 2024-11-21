@@ -433,6 +433,8 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         AccountV3TBD tokenBoundAccount = getTokenBoundAccount(tokenId);
         uint256 balance = escrowToken.balanceOf(address(tokenBoundAccount));
 
+        stakedAmount[tokenId] = claimedAmount[tokenId];
+
         tokenBoundAccount.send(msg.sender, balance);
 
         emit Recover(msg.sender, address(tokenBoundAccount), tokenId, balance);
