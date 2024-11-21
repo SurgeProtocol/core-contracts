@@ -154,7 +154,9 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         address treasury_,
         string memory name_,
         string memory symbol_,
-        string memory baseURI_
+        string memory baseURI_,
+        string memory image_,
+        string memory description_
     ) ERC721(name_, symbol_) {
         require(registry_ != ADDRESS_ZERO, "SRG001");
         require(implementation_ != ADDRESS_ZERO, "SRG002");
@@ -170,6 +172,8 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         treasury = treasury_;
         multiple = 1e18;
         _base = string.concat(baseURI_, "/chain/", block.chainid.toString(), "/deal/", address(this).toHexString(), "/token/");
+        image = image_;
+        description = description_;
     }
 
     /**

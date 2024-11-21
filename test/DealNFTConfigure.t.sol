@@ -28,7 +28,7 @@ contract DealNFTConfigureTest is Test, DealSetup {
         assertEq(deal.closingDelay(), 0);
         assertEq(deal.website(), "");
         assertEq(deal.social(), "");
-        assertEq(deal.image(), "");
+        assertEq(deal.image(), "https://image.jpg");
 
         _setup();
 

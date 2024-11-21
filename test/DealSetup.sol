@@ -55,7 +55,9 @@ contract DealSetup is Test {
             treasury,
             "SurgeDealTEST",
             "SRGTEST",
-            "https://test.com"
+            "https://test.com",
+            "https://image.jpg",
+            "description"
         );
 
         vm.prank(treasury);

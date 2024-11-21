@@ -21,7 +21,10 @@ contract DeployDealNFT is Script {
         string memory baseURI = constants.baseURI();
 
         string memory name = "Surge Test";
-        string memory symbol = "SRGTST";        
+        string memory symbol = "SRGTST";
+
+        string memory image = "Test Image";
+        string memory description = "Test Description";      
 
         address deal = Create2.computeAddress(
             salt,
@@ -35,7 +38,9 @@ contract DeployDealNFT is Script {
                         treasury,
                         name,
                         symbol,
-                        baseURI
+                        baseURI,
+                        image,
+                        description
                     )
                 )
             ),
@@ -52,7 +57,9 @@ contract DeployDealNFT is Script {
                 treasury,
                 name,
                 symbol,
-                baseURI
+                baseURI,
+                image,
+                description
             );
             vm.stopBroadcast();
 
@@ -67,7 +74,7 @@ contract DeployDealNFT is Script {
             block.chainid,
             deal,
             string.concat(
-                "src/DealNFT.sol:DealNFT --constructor-args $(cast abi-encode \"constructor(address,address,address,address,string,string,string)\" ",
+                "src/DealNFT.sol:DealNFT --constructor-args $(cast abi-encode \"constructor(address,address,address,address,string,string,string,string,string)\" ",
                 Strings.toHexString(registry),
                 " ",
                 Strings.toHexString(implementation),
@@ -81,6 +88,10 @@ contract DeployDealNFT is Script {
                 symbol,
                 " ",
                 baseURI,
+                " ",
+                image,
+                " ",
+                description,
                 ")\n"
             )
         );

@@ -38,7 +38,9 @@ contract DealFactory {
     function create(
         address sponsor_,
         string memory name_,
-        string memory symbol_
+        string memory symbol_,
+        string memory image_,
+        string memory description_
     ) external returns (address)  {
         require(_active, "turned off");
         require(sponsor_ != address(0), "sponsor is zero");
@@ -52,7 +54,9 @@ contract DealFactory {
             _treasury,
             name_,
             symbol_,
-            _baseURI
+            _baseURI,
+            image_,
+            description_
         );
 
         emit Create(address(deal), sponsor_, name_, symbol_);

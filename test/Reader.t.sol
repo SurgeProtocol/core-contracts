@@ -96,8 +96,8 @@ contract ReaderTest is Test, DealSetup {
         assertEq(uint256(deal.state), uint256(DealNFT.State.Setup));
         assertEq(deal.website, "");
         assertEq(deal.social, "");
-        assertEq(deal.image, "");
-        assertEq(deal.description, "");
+        assertEq(deal.image, "https://image.jpg");
+        assertEq(deal.description, "description");
         assertEq(deal.name, "SurgeDealTEST");
         assertEq(deal.symbol, "SRGTEST");
 
