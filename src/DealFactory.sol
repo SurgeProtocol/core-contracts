@@ -2,6 +2,7 @@
 pragma solidity 0.8.25;
 
 import {DealNFT} from "./DealNFT.sol";
+import {StakingRelayer} from "./StakingRelayer.sol";
 
 contract DealFactory {
 
@@ -9,6 +10,7 @@ contract DealFactory {
 
     bool private _active;
     address private immutable _owner;
+    address private _relayer;
 
     address private immutable _registry;
     address private immutable _implementation;
@@ -59,6 +61,10 @@ contract DealFactory {
             description_
         );
 
+        if (_relayer != address(0)) {
+            StakingRelayer(_relayer).enableDeal(address(deal));
+        }
+
         emit Create(address(deal), sponsor_, name_, symbol_);
 
         return address(deal);
@@ -67,5 +73,11 @@ contract DealFactory {
     function turnOff() external {
         require(msg.sender == _owner, "only owner");
         _active = false;
+    }
+
+    function setRelayer(address relayer_) external {
+        require(msg.sender == _owner, "only owner");
+        require(relayer_ != address(0), "relayer is zero");
+        _relayer = relayer_;
     }
 }

@@ -78,13 +78,13 @@ contract StakingRelayerTest is Test, DealSetup {
     }
 
     function test_RevertWhen_enableWithWrongSender() public {
-        vm.expectRevert("Ownable: caller is not the owner");
+        vm.expectRevert("StakingRelayer: not owner or factory");
         vm.prank(staker1);
         relayer.enableDeal(address(deal));
     }
 
     function test_RevertWhen_disableWithWrongSender() public {
-        vm.expectRevert("Ownable: caller is not the owner");
+        vm.expectRevert("StakingRelayer: not owner");
         vm.prank(staker1);
         relayer.disableDeal(address(deal));
     }
