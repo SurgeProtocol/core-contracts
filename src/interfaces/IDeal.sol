@@ -3,9 +3,10 @@ pragma solidity 0.8.25;
 
 import {IWhitelist} from "./IWhitelist.sol";
 import {IERC20Metadata} from "openzeppelin/token/ERC20/extensions/IERC20Metadata.sol";
+import {DealNFT} from "../DealNFT.sol";
 
 interface IDeal {
-    enum State { Setup, Active, Claiming, Closed, Canceled }
+    enum State { Setup, Active, Claiming, Closed, Cancelled }
 
     struct StakeData {
         address owner;
@@ -19,8 +20,8 @@ interface IDeal {
         address arbitrator;
         IWhitelist stakersWhitelist;
         IWhitelist claimsWhitelist;
-        IERC20Metadata escrowToken;
-        IERC20Metadata deliveryToken;
+        address escrowToken;
+        address deliveryToken;
         uint256 closingTime;
         uint256 closingDelay;
         uint256 totalClaimed;
@@ -54,29 +55,15 @@ interface IDeal {
         string description;
     }
 
-    function escrowToken() external view returns (IERC20Metadata);
+    function getConfiguration() external view returns (DealNFT.Configuration memory);
     function deliveryToken() external view returns (IERC20Metadata);
-    function transferable() external view returns (bool);
-    function closingTime() external view returns (uint256);
-    function closingDelay() external view returns (uint256);
     function totalClaimed() external view returns (uint256);
     function totalStaked() external view returns (uint256);
-    function multiple() external view returns (uint256);
-    function dealMinimum() external view returns (uint256);
-    function dealMaximum() external view returns (uint256);
-    function unstakingFee() external view returns (uint256);
+    function getStakesTo(uint256 id) external view returns (StakeData[] memory);
     function nextId() external view returns (uint256);
-    function sponsor() external view returns (address);
-    function arbitrator() external view returns (address);
-    function stakersWhitelist() external view returns (IWhitelist);
-    function claimsWhitelist() external view returns (IWhitelist);
     function state() external view returns (State);
-    function social() external view returns (string memory);
-    function description() external view returns (string memory);
-    function website() external view returns (string memory);
     function name() external view returns (string memory);
     function symbol() external view returns (string memory);
-    function image() external view returns (string memory);
-    function getStakesTo(uint256 id) external view returns (StakeData[] memory);
-    function deliveryType() external view returns (uint256);
+    function stakersWhitelist() external view returns (IWhitelist);
+    function claimsWhitelist() external view returns (IWhitelist);
 }

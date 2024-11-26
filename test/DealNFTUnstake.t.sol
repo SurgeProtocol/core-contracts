@@ -21,7 +21,7 @@ contract DealNFTUnstakeTest is Test, DealSetup {
         escrowToken.approve(address(deal), 999980);
 
         vm.prank(staker1);
-        deal.stake(999980);
+        deal.stake(staker1, 999980);
 
         assertEq(deal.totalStaked(), 999980);
         assertEq(uint256(deal.state()), uint256(DealNFT.State.Active));
@@ -40,7 +40,7 @@ contract DealNFTUnstakeTest is Test, DealSetup {
     function test_RevertWhen_UnstakeWithWrongOwner() public {
         _stake(staker1);
 
-        vm.expectRevert("SRG022");
+        vm.expectRevert(DealNFT.OnlyTokenOwner.selector);
         vm.prank(staker2);
         deal.unstake(0);
     }
@@ -50,20 +50,20 @@ contract DealNFTUnstakeTest is Test, DealSetup {
         skip(15 days);
         assertEq(uint256(deal.state()), uint256(DealNFT.State.Claiming));
 
-        vm.expectRevert("SRG038");
+        vm.expectRevert(DealNFT.CannotUnstake.selector);
         vm.prank(staker1);
         deal.unstake(0);
     }
 
-    function test_RevertWhen_UnstakeAfterCanceled() public {
+    function test_RevertWhen_UnstakeAfterCancelled() public {
         _stake(staker1);
         assertEq(deal.totalStaked(), amount);
 
         vm.prank(sponsor);
         deal.cancel();
-        assertEq(uint(deal.state()), uint256(DealNFT.State.Canceled));
+        assertEq(uint(deal.state()), uint256(DealNFT.State.Cancelled));
 
-        vm.expectRevert("SRG038");
+        vm.expectRevert(DealNFT.CannotUnstake.selector);
         vm.prank(staker1);
         deal.unstake(0);
     }
@@ -80,7 +80,7 @@ contract DealNFTUnstakeTest is Test, DealSetup {
         assertEq(deal.totalStaked(), amount);
         assertEq(uint(deal.state()), uint256(DealNFT.State.Closed));
 
-        vm.expectRevert("SRG038");
+        vm.expectRevert(DealNFT.CannotUnstake.selector);
 
         vm.prank(staker2);
         deal.unstake(1);

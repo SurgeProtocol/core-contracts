@@ -19,38 +19,38 @@ contract ReaderTest is Test, DealSetup {
 
     function test_GetDeal() public {
         _initialize();
-        IDeal.DealData memory deal = reader.getDeal(address(deal));
+        IDeal.DealData memory _deal = reader.getDeal(address(deal));
         IERC20Metadata escrow = IERC20Metadata(address(escrowToken));
 
-        assertEq(deal.sponsor, sponsor);
-        assertEq(deal.arbitrator, arbitrator);
-        assertEq(address(deal.stakersWhitelist), address(0));
-        assertEq(address(deal.claimsWhitelist), address(0));
-        assertEq(address(deal.escrowToken), address(escrowToken));
-        assertEq(address(deal.deliveryToken), address(0));
+        assertEq(_deal.sponsor, sponsor);
+        assertEq(_deal.arbitrator, arbitrator);
+        assertEq(address(_deal.stakersWhitelist), address(0));
+        assertEq(address(_deal.claimsWhitelist), address(0));
+        assertEq(address(_deal.escrowToken), address(escrowToken));
+        assertEq(address(_deal.deliveryToken), address(0));
 
-        // assertEq(deal.closingTime, 0);
-        assertEq(deal.closingDelay, 30 minutes);
-        assertEq(deal.totalClaimed, 0);
-        assertEq(deal.totalStaked, 2000000);
-        assertEq(deal.multiple, 1e18);
-        assertEq(deal.dealMinimum, 0);
-        assertEq(deal.dealMaximum, 2000000);
-        assertEq(deal.unstakingFee, 50000);
-        assertEq(deal.nextId, 2);
-        assertEq(uint256(deal.state), uint256(DealNFT.State.Active));
-        assertEq(deal.website, "https://website");
-        assertEq(deal.social, "https://social");
-        assertEq(deal.image, "https://image");
-        assertEq(deal.description, "desc");
-        assertEq(deal.name, "SurgeDealTEST");
-        assertEq(deal.symbol, "SRGTEST");
+        // assertEq(_deal.closingTime, 0);
+        assertEq(_deal.closingDelay, 30 minutes);
+        assertEq(_deal.totalClaimed, 0);
+        assertEq(_deal.totalStaked, 2000000);
+        assertEq(_deal.multiple, 5e18);
+        assertEq(_deal.dealMinimum, 0);
+        assertEq(_deal.dealMaximum, 2000000);
+        assertEq(_deal.unstakingFee, 50000);
+        assertEq(_deal.nextId, 2);
+        assertEq(uint256(_deal.state), uint256(DealNFT.State.Active));
+        assertEq(_deal.website, "https://website");
+        assertEq(_deal.social, "https://social");
+        assertEq(_deal.image, "https://image");
+        assertEq(_deal.description, "desc");
+        assertEq(_deal.name, "SurgeDealTEST");
+        assertEq(_deal.symbol, "SRGTEST");
 
-        assertEq(deal.escrowDecimals, escrow.decimals());
-        assertEq(deal.escrowName, escrow.name());
-        assertEq(deal.escrowSymbol, escrow.symbol());
+        assertEq(_deal.escrowDecimals, escrow.decimals());
+        assertEq(_deal.escrowName, escrow.name());
+        assertEq(_deal.escrowSymbol, escrow.symbol());
         
-        IDeal.StakeData[] memory stakes = deal.claimed;
+        IDeal.StakeData[] memory stakes = _deal.claimed;
 
         assertEq(stakes.length, 2);
         assertEq(stakes[0].owner, staker1);
@@ -66,44 +66,45 @@ contract ReaderTest is Test, DealSetup {
 
     function test_GetShortDeal() public {
         _initialize();
-        IDeal.DealShortData memory deal = reader.getShortDeal(address(deal));
-        assertEq(deal.name, "SurgeDealTEST");
-        assertEq(deal.image, "https://image");
-        assertEq(deal.symbol, "SRGTEST");
-        assertEq(uint256(deal.state), uint256(DealNFT.State.Active));
-        assertEq(deal.description, "desc");
+        IDeal.DealShortData memory _deal = reader.getShortDeal(address(deal));
+        assertEq(_deal.name, "SurgeDealTEST");
+        assertEq(_deal.image, "https://image");
+        assertEq(_deal.symbol, "SRGTEST");
+        assertEq(uint256(_deal.state), uint256(DealNFT.State.Active));
+        assertEq(_deal.description, "desc");
     }
 
     function test_GetDeal_EmptyDeal() public view {
-        IDeal.DealData memory deal = reader.getDeal(address(deal));
+        IDeal.DealData memory _deal = reader.getDeal(address(deal));
 
-        assertEq(deal.sponsor, sponsor);
-        assertEq(deal.arbitrator, arbitrator);
-        assertEq(address(deal.stakersWhitelist), address(0));
-        assertEq(address(deal.claimsWhitelist), address(0));
-        assertEq(address(deal.escrowToken), address(0));
-        assertEq(address(deal.deliveryToken), address(0));
+        assertEq(_deal.sponsor, sponsor);
+        assertEq(_deal.arbitrator, arbitrator);
+        assertEq(address(_deal.stakersWhitelist), address(0));
+        assertEq(address(_deal.claimsWhitelist), address(0));
+        assertEq(address(_deal.escrowToken), address(0));
+        assertEq(address(_deal.deliveryToken), address(0));
 
-        // assertEq(deal.closingTime, 0);
-        assertEq(deal.closingDelay, 0);
-        assertEq(deal.totalClaimed, 0);
-        assertEq(deal.totalStaked, 0);
-        assertEq(deal.multiple, 1e18);
-        assertEq(deal.dealMinimum, 0);
-        assertEq(deal.dealMaximum, 0);
-        assertEq(deal.unstakingFee, 0);
-        assertEq(deal.nextId, 0);
-        assertEq(uint256(deal.state), uint256(DealNFT.State.Setup));
-        assertEq(deal.website, "");
-        assertEq(deal.social, "");
-        assertEq(deal.image, "https://image.jpg");
-        assertEq(deal.description, "description");
-        assertEq(deal.name, "SurgeDealTEST");
-        assertEq(deal.symbol, "SRGTEST");
+        // assertEq(_deal.closingTime, 0);
+        assertEq(_deal.closingDelay, 0);
+        assertEq(_deal.totalClaimed, 0);
+        assertEq(_deal.totalStaked, 0);
+        assertEq(_deal.multiple, 1e18);
+        assertEq(_deal.dealMinimum, 0);
+        assertEq(_deal.dealMaximum, 0);
+        assertEq(_deal.unstakingFee, 0);
+        assertEq(_deal.deliveryType, 0);
+        assertEq(_deal.nextId, 0);
+        assertEq(uint256(_deal.state), uint256(DealNFT.State.Setup));
+        assertEq(_deal.website, "");
+        assertEq(_deal.social, "");
+        assertEq(_deal.image, "https://image.jpg");
+        assertEq(_deal.description, "");
+        assertEq(_deal.name, "SurgeDealTEST");
+        assertEq(_deal.symbol, "SRGTEST");
 
-        assertEq(deal.escrowDecimals, 6);
-        assertEq(deal.escrowName, "");
-        assertEq(deal.escrowSymbol, "");
+        assertEq(_deal.escrowDecimals, 6);
+        assertEq(_deal.escrowName, "");
+        assertEq(_deal.escrowSymbol, "");
     }
 
     function _initialize() internal {
@@ -112,9 +113,9 @@ contract ReaderTest is Test, DealSetup {
         _activate();
 
         vm.prank(staker1);
-        deal.stake(amount);
+        deal.stake(staker1, amount);
 
         vm.prank(staker2);
-        deal.stake(amount);
+        deal.stake(staker2, amount);
     }
 }

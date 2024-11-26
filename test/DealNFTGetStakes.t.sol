@@ -13,9 +13,9 @@ contract DealNFTStakeTest is Test, DealSetup {
         _activate();
 
         vm.prank(staker1);
-        deal.stake(amount);
+        deal.stake(staker1, amount);
         vm.prank(staker2);
-        deal.stake(amount);
+        deal.stake(staker2, amount);
     }
 
     function test_GetStakes() public view {

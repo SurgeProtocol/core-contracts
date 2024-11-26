@@ -10,7 +10,7 @@ contract Constants {
     address public factory = 0x4e59b44847b379578588920cA78FbF26c0B4956C;
     address public registry = 0x000000006551c19487814612e58FE06813775758;
     address public sponsor = 0xF2D3Ba4Ad843Ac0842Baf487660FCb3B208c988c;
-    string public baseURI = "https://api.surge.rip";
+    string public nftURI = "https://api.surge.rip";
 
     constructor() {
         // bob

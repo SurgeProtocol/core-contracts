@@ -64,16 +64,34 @@ contract DealNFTClaimTest is Test {
             address(guardian)
         );
 
+        DealNFT.Configuration memory dealConfig = DealNFT.Configuration({
+            escrowToken: address(escrowToken),
+            sponsor: sponsor,
+            arbitrator: arbitrator,
+            image: "https://image.jpg",
+            description: "description",
+            social: "",
+            website: "",
+            multiple: 1e18,
+            closingDelay: 0,
+            unstakingFee: 0,
+            closingTime: 0,
+            dealMinimum: 0,
+            dealMaximum: 0,
+            deliveryType: 0,
+            active: false,
+            cancelled: false,
+            transferable: false
+        });
+
         deal = new DealNFT(
+            treasury,
             address(registry),
             payable(address(implementation)),
-            sponsor,
-            treasury,
+            "https://test.com",
             "SurgeDealTEST",
             "SRGTEST",
-            "https://test.com",
-            "https://image.jpg",
-            "description"
+            dealConfig
         );
 
         vm.prank(treasury);
@@ -96,22 +114,19 @@ contract DealNFTClaimTest is Test {
 
         vm.startPrank(sponsor);
         deal.setup(address(escrowToken), 30 minutes, 50000, "https://social", "https://website", "https://image", "desc", 0);
-        deal.configure("desc", "https://social", "https://website", block.timestamp + 2 weeks, 0, 2000000);
+        deal.configure("desc", "https://social", "https://website", block.timestamp + 2 weeks, 0, 2000000, 1e18);
         deal.activate();
         vm.stopPrank();
     }
 
     function test_Claim() public {
         vm.startPrank(arbitrator);
-        deal.setDeliveryToken(address(deliveryToken));
         deliveryToken.approve(address(deal), 10000e12);
-        deal.depositDeliveryTokens(10000e12);
+        deal.depositDeliveryTokens(address(deliveryToken), 10000e12);
         vm.stopPrank();
 
-        vm.startPrank(sponsor);
-        deal.configure("desc", "https://social", "https://website", block.timestamp + 2 weeks, 50e8, 150e8);
-        deal.setMultiple(5e18);
-        vm.stopPrank();
+        vm.prank(sponsor);
+        deal.configure("desc", "https://social", "https://website", block.timestamp + 2 weeks, 50e8, 150e8, 5e18);
 
         _stake(staker1, amount);
         _stake(staker2, amount);
@@ -186,7 +201,8 @@ contract DealNFTClaimTest is Test {
         _stake(staker6, 10e8);
         _stake(staker7, 20e8);
 
-        uint256 maximum = deal.dealMaximum();
+        DealNFT.Configuration memory config = deal.getConfiguration();
+        uint256 maximum = config.dealMaximum;
         uint256 bonus0 = deal.getDeliveryTokensFor(0, maximum);
         uint256 bonus1 = deal.getDeliveryTokensFor(1, maximum);
         uint256 bonus2 = deal.getDeliveryTokensFor(2, maximum);
@@ -234,7 +250,8 @@ contract DealNFTClaimTest is Test {
         _stake(staker6, 10e8);
         _stake(staker7, 20e8);
 
-        uint256 maximum = deal.dealMaximum();
+        DealNFT.Configuration memory config = deal.getConfiguration();
+        uint256 maximum = config.dealMaximum;
         uint256 bonus0 = deal.getDeliveryTokensFor(0, maximum);
         uint256 bonus1 = deal.getDeliveryTokensFor(1, maximum);
         uint256 bonus2 = deal.getDeliveryTokensFor(2, maximum);
@@ -322,19 +339,16 @@ contract DealNFTClaimTest is Test {
 
     function _setup(uint256 delivery, uint256 multiple) internal {
         vm.startPrank(arbitrator);
-        deal.setDeliveryToken(address(deliveryToken));
         deliveryToken.approve(address(deal), 10000e12);
-        if(delivery > 0) deal.depositDeliveryTokens(delivery);
+        if(delivery > 0) deal.depositDeliveryTokens(address(deliveryToken), delivery);
         vm.stopPrank();
 
-        vm.startPrank(sponsor);
-        deal.configure("desc", "https://social", "https://website", block.timestamp + 2 weeks, 50e8, 100e8);
-        deal.setMultiple(multiple);
-        vm.stopPrank();
+        vm.prank(sponsor);
+        deal.configure("desc", "https://social", "https://website", block.timestamp + 2 weeks, 50e8, 100e8, multiple);
     }
 
     function _stake(address staker, uint256 amount_) internal {
         vm.prank(staker);
-        deal.stake(amount_);
+        deal.stake(staker, amount_);
     }
 }

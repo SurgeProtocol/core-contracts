@@ -3,8 +3,8 @@ pragma solidity 0.8.25;
 
 import "forge-std/Script.sol";
 
-import "@openzeppelin/contracts/utils/Create2.sol";
-import "@openzeppelin/contracts/utils/Strings.sol";
+import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
+import {Strings} from "openzeppelin/utils/Strings.sol";
 
 import "../src/DealFactory.sol";
 import "./Constants.sol";
@@ -17,9 +17,14 @@ contract DeployDealFactory is Script {
         address registry = constants.registry();
         address implementation = constants.implementation(block.chainid);
         address treasury = constants.treasury(block.chainid);
-        string memory baseURI = constants.baseURI();
-
         address owner = treasury;
+
+        string memory nftURI = string.concat(
+            constants.nftURI(),
+            "/chain/",
+            Strings.toString(block.chainid),
+            "/deal/"
+        );
 
         address dealFactory = Create2.computeAddress(
             salt,
@@ -28,10 +33,10 @@ contract DeployDealFactory is Script {
                     type(DealFactory).creationCode,
                     abi.encode(
                         owner,
+                        treasury,
                         registry,
                         implementation,
-                        treasury,
-                        baseURI
+                        nftURI
                     )
                 )
             ),
@@ -43,10 +48,10 @@ contract DeployDealFactory is Script {
             vm.startBroadcast();
             new DealFactory{salt: salt}(
                 owner,
+                treasury,
                 registry,
                 implementation,
-                treasury,
-                baseURI
+                nftURI
             );
             vm.stopBroadcast();
 
@@ -64,13 +69,13 @@ contract DeployDealFactory is Script {
                 "src/DealFactory.sol:DealFactory --constructor-args $(cast abi-encode \"constructor(address,address,address,address,string)\" ",
                 Strings.toHexString(owner),
                 " ",
+                Strings.toHexString(treasury),
+                " ",
                 Strings.toHexString(registry),
                 " ",
                 Strings.toHexString(implementation),
                 " ",
-                Strings.toHexString(treasury),
-                " ",
-                baseURI,
+                nftURI,
                 ")\n"
             )
         );

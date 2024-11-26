@@ -14,7 +14,7 @@ contract DealNFTClaimTest is Test, DealSetup {
     }
 
     function test_RevertWhen_ClaimNotArbitrator() public {
-        vm.expectRevert("SRG021");
+        vm.expectRevert(DealNFT.OnlyArbitrator.selector);
         vm.prank(staker1);
         deal.claim();
     }
@@ -23,7 +23,7 @@ contract DealNFTClaimTest is Test, DealSetup {
         _stake(staker1);
         _stake(staker2);
         
-        vm.expectRevert("SRG044");
+        vm.expectRevert(DealNFT.NotInClaimingState.selector);
         vm.prank(arbitrator);
         deal.claim();
     }
@@ -33,21 +33,21 @@ contract DealNFTClaimTest is Test, DealSetup {
         _stake(staker2);
         skip(22 days);
 
-        vm.expectRevert("SRG044");
+        vm.expectRevert(DealNFT.NotInClaimingState.selector);
         vm.prank(arbitrator);
         deal.claim();
     }
 
-    function test_RevertWhen_ClaimAfterCanceled() public {
+    function test_RevertWhen_ClaimAfterCancelled() public {
         _stake(staker1);
         _stake(staker2);
 
         vm.prank(sponsor);
         deal.cancel();
 
-        assertEq(uint256(deal.state()), uint256(DealNFT.State.Canceled));
+        assertEq(uint256(deal.state()), uint256(DealNFT.State.Cancelled));
 
-        vm.expectRevert("SRG044");
+        vm.expectRevert(DealNFT.NotInClaimingState.selector);
         vm.prank(arbitrator);
         deal.claim();
     }
@@ -61,50 +61,44 @@ contract DealNFTClaimTest is Test, DealSetup {
         vm.startPrank(arbitrator);
         deal.claim();
         
-        vm.expectRevert("SRG043");
+        vm.expectRevert(DealNFT.TokenOutOfBounds.selector);
         deal.claimNext();
         vm.stopPrank();
     }
 
     function test_RevertWhen_ClaimMinimumNotReached() public {
         vm.prank(sponsor);
-        deal.configure("lorem ipsum", "https://social", "https://website", block.timestamp + 2 weeks, 2500000, 3000000);
+        deal.configure("lorem ipsum", "https://social", "https://website", block.timestamp + 2 weeks, 2500000, 3000000, 1e18);
         _stake(staker1);
         _stake(staker2);
         skip(15 days);
 
-        vm.expectRevert("SRG045");
+        vm.expectRevert(DealNFT.MinimumNotReached.selector);
         vm.prank(arbitrator);
         deal.claim();
     }
 
-    function test_RevertWhen_SetDeliveryTokenNotSponsor() public {
-        vm.expectRevert("SRG021");
+    function test_RevertWhen_DepositDeliveryTokensNotArbitrator() public {
+        vm.expectRevert(DealNFT.OnlyArbitrator.selector);
         vm.prank(staker1);
-        deal.setDeliveryToken(address(0));
+        deal.depositDeliveryTokens(address(0), 1);
     }
 
-    function test_RevertWhen_DepositDeliveryTokensNotSponsor() public {
-        vm.expectRevert("SRG021");
-        vm.prank(staker1);
-        deal.depositDeliveryTokens(1);
-    }
-
-    function test_RevertWhen_RecoverDeliveryTokensNotSponsor() public {
-        vm.expectRevert("SRG021");
+    function test_RevertWhen_RecoverDeliveryTokensNotArbitrator() public {
+        vm.expectRevert(DealNFT.OnlyArbitrator.selector);
         vm.prank(staker1);
         deal.recoverDeliveryTokens();
     }
 
     function test_RevertWhen_StateIsNotClosed() public {
-        vm.expectRevert("SRG033");
+        vm.expectRevert(DealNFT.CannotRecover.selector);
         vm.prank(arbitrator);
         deal.recoverDeliveryTokens();
     }
 
     function test_RevertWhen_DeliveryTokenNotSet() public {
-        vm.expectRevert("SRG014");
+        vm.expectRevert(DealNFT.ZeroDetected.selector);
         vm.prank(arbitrator);
-        deal.depositDeliveryTokens(1);
+        deal.depositDeliveryTokens(address(0), 1);
     }
 }

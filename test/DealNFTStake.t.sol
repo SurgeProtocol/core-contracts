@@ -16,7 +16,7 @@ contract DealNFTStakeTest is Test, DealSetup {
         _activate();
 
         vm.prank(staker1);
-        deal.stake(amount);
+        deal.stake(staker1, amount);
         tokenId = 0;
 
         assertEq(deal.stakedAmount(tokenId), amount);
@@ -29,7 +29,7 @@ contract DealNFTStakeTest is Test, DealSetup {
         assertEq(deal.ownerOf(tokenId), staker1);
 
         vm.prank(staker2);
-        deal.stake(amount);
+        deal.stake(staker2, amount);
         tokenId = 1;
 
         assertEq(deal.stakedAmount(tokenId), amount);
@@ -45,9 +45,9 @@ contract DealNFTStakeTest is Test, DealSetup {
     function test_RevertWhen_StakeBeforeActive() public {
 
         assertEq(uint256(deal.state()), uint256(DealNFT.State.Setup));
-        vm.expectRevert("SRG036");
+        vm.expectRevert(DealNFT.NotActive.selector);
         vm.prank(staker1);
-        deal.stake(amount);
+        deal.stake(staker1, amount);
     }
 
     function test_RevertWhen_StakeAfterActive() public {
@@ -55,17 +55,17 @@ contract DealNFTStakeTest is Test, DealSetup {
 
         skip(15 days);
 
-        vm.expectRevert("SRG036");
+        vm.expectRevert(DealNFT.NotActive.selector);
         vm.prank(staker1);
-        deal.stake(amount);
+        deal.stake(staker1, amount);
     }
 
     function test_RevertWhen_StakeZero() public {
         _activate();
 
-        vm.expectRevert("SRG015");
+        vm.expectRevert(DealNFT.ZeroDetected.selector);
         vm.prank(staker1);
-        deal.stake(0);
+        deal.stake(staker1, 0);
     }
 
 }

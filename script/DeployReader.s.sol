@@ -42,7 +42,7 @@ contract DeployReader is Script {
             "forge verify-contract --num-of-optimizations 200 --chain-id",
             block.chainid,
             reader,
-            "src/Reader.sol:Reader --constructor-args"
+            "src/Reader.sol:Reader"
         );
     }
 }

@@ -19,7 +19,7 @@ contract DealNFTRecoverTest is Test, DealSetup {
         assertEq(deal.totalStaked(), amount);
         assertEq(uint256(deal.state()), uint256(DealNFT.State.Active));
 
-        vm.expectRevert("SRG039");
+        vm.expectRevert(DealNFT.CannotRecover.selector);
         vm.prank(staker1);
         deal.recover(0);
     }
@@ -29,7 +29,7 @@ contract DealNFTRecoverTest is Test, DealSetup {
         skip(15 days);
         assertEq(uint256(deal.state()), uint256(DealNFT.State.Claiming));
 
-        vm.expectRevert("SRG046");
+        vm.expectRevert(DealNFT.MinimumReached.selector);
         vm.prank(staker1);
         deal.recover(0);
     }
@@ -37,19 +37,19 @@ contract DealNFTRecoverTest is Test, DealSetup {
     function test_RevertWhen_RecoverWithWrongOwner() public {
         _stake(staker1);
 
-        vm.expectRevert("SRG022");
+        vm.expectRevert(DealNFT.OnlyTokenOwner.selector);
         vm.prank(staker2);
         deal.recover(0);
     }
 
 
-    function test_RecoverAfterCanceled() public {
+    function test_RecoverAfterCancelled() public {
         _stake(staker1);
         assertEq(deal.totalStaked(), amount);
 
         vm.prank(sponsor);
         deal.cancel();
-        assertEq(uint(deal.state()), uint256(DealNFT.State.Canceled));
+        assertEq(uint(deal.state()), uint256(DealNFT.State.Cancelled));
         
         assertEq(escrowToken.balanceOf(address(deal.getTokenBoundAccount(0))), amount);
         assertEq(escrowToken.balanceOf(staker1), 0);

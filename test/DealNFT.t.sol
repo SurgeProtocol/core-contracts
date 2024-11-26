@@ -39,7 +39,7 @@ contract DealNFTTest is Test, DealSetup {
         assertEq(deal.ownerOf(tokenId), staker1);
         assertEq(deal.tokenURI(tokenId), string(abi.encodePacked(
             "https://test.com/chain/",
-            block.chainid.toString(),
+            "1",
             "/deal/",
             address(deal).toHexString(),
             "/token/0"

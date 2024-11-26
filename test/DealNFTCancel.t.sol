@@ -15,20 +15,20 @@ contract DealNFTCancelTest is Test, DealSetup {
     function test_CancelBySponsor() public {
         vm.prank(sponsor);
         deal.cancel();
-        assertEq(uint256(deal.state()), uint256(DealNFT.State.Canceled));
+        assertEq(uint256(deal.state()), uint256(DealNFT.State.Cancelled));
     }
 
     function test_CancelByArbitrator() public {
         vm.prank(sponsor);
-        deal.configure("desc", "https://social", "https://website", block.timestamp + 2 weeks, 0, 2000000);
+        deal.configure("desc", "https://social", "https://website", block.timestamp + 2 weeks, 0, 2000000, 1e18);
 
         vm.prank(arbitrator);
         deal.cancel();
-        assertEq(uint256(deal.state()), uint256(DealNFT.State.Canceled));
+        assertEq(uint256(deal.state()), uint256(DealNFT.State.Cancelled));
     }
 
     function test_RevertWhen_CancelWrongSponsorOrArbitrator() public {
-        vm.expectRevert("SRG023");
+        vm.expectRevert(DealNFT.NotAuthorized.selector);
         vm.prank(staker1);
         deal.cancel();
     }
@@ -37,7 +37,7 @@ contract DealNFTCancelTest is Test, DealSetup {
         skip(15 days);
         assertEq(uint(deal.state()), uint256(DealNFT.State.Claiming));
 
-        vm.expectRevert("SRG035");
+        vm.expectRevert(DealNFT.CannotCancel.selector);
         vm.prank(sponsor);
         deal.cancel();
     }

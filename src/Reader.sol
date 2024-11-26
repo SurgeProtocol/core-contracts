@@ -3,12 +3,14 @@ pragma solidity ^0.8.25;
 
 import {IERC20Metadata} from "openzeppelin/token/ERC20/extensions/IERC20Metadata.sol";
 import {IDeal} from "./interfaces/IDeal.sol";
+import {DealNFT} from "./DealNFT.sol";
 
 contract Reader {
 
     function getDeal(address dealAddress) external view returns (IDeal.DealData memory deal) {
         IDeal dealInstance = IDeal(dealAddress);
-        IERC20Metadata escrowToken = dealInstance.escrowToken();
+        DealNFT.Configuration memory config = dealInstance.getConfiguration();
+        IERC20Metadata escrowToken = IERC20Metadata(config.escrowToken);
 
         string memory _escrowName;
         string memory _escrowSymbol;
@@ -27,46 +29,47 @@ contract Reader {
         }
 
         deal = IDeal.DealData({
-            sponsor: dealInstance.sponsor(),
-            arbitrator: dealInstance.arbitrator(),
+            escrowToken: config.escrowToken,
+            sponsor: config.sponsor,
+            arbitrator: config.arbitrator,
+            image: config.image,
+            description: config.description,
+            social: config.social,
+            website: config.website,
+            multiple: config.multiple,
+            closingDelay: config.closingDelay,
+            closingTime: config.closingTime,
+            unstakingFee: config.unstakingFee,
+            dealMinimum: config.dealMinimum,
+            dealMaximum: config.dealMaximum,
+            deliveryType: config.deliveryType,
+            transferable: config.transferable,
             stakersWhitelist: dealInstance.stakersWhitelist(),
             claimsWhitelist: dealInstance.claimsWhitelist(),
-            escrowToken: dealInstance.escrowToken(),
-            deliveryToken: dealInstance.deliveryToken(),
-            closingTime: dealInstance.closingTime(),
-            closingDelay: dealInstance.closingDelay(),
+            deliveryToken: address(dealInstance.deliveryToken()),
             totalClaimed: dealInstance.totalClaimed(),
             totalStaked: dealInstance.totalStaked(),
-            multiple: dealInstance.multiple(),
-            dealMinimum: dealInstance.dealMinimum(),
-            dealMaximum: dealInstance.dealMaximum(),
-            unstakingFee: dealInstance.unstakingFee(),
-            nextId: _nextId,
             state: dealInstance.state(),
-            social: dealInstance.social(),
-            description: dealInstance.description(),
-            website: dealInstance.website(),
             name: dealInstance.name(),
             symbol: dealInstance.symbol(),
-            image: dealInstance.image(),
             escrowName: _escrowName,
             escrowSymbol: _escrowSymbol,
             escrowDecimals: _escrowDecimals,
             claimed: _claimed,
-            transferable: dealInstance.transferable(),
-            deliveryType: dealInstance.deliveryType()
+            nextId: _nextId
         });
     }
 
     function getShortDeal(address dealAddress) external view returns (IDeal.DealShortData memory deal) {
         IDeal dealInstance = IDeal(dealAddress);
+        DealNFT.Configuration memory config = dealInstance.getConfiguration();
 
         deal = IDeal.DealShortData({
             name: dealInstance.name(),
-            image: dealInstance.image(),
             symbol: dealInstance.symbol(),
             state: dealInstance.state(),
-            description: dealInstance.description()
+            image: config.image,
+            description: config.description
         });
     }
 }

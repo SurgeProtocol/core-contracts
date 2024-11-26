@@ -11,10 +11,11 @@ import "tokenbound/src/AccountGuardian.sol";
 
 import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
 import {ERC20PresetFixedSupply} from "openzeppelin/token/ERC20/presets/ERC20PresetFixedSupply.sol";
+import {IERC20Metadata} from "openzeppelin/token/ERC20/extensions/IERC20Metadata.sol";
 
 contract DealSetup is Test {
     DealNFT public deal;
-    IERC20 public escrowToken;
+    IERC20Metadata public escrowToken;
 
     uint256 tokenId = 0;
     uint256 amount = 1000000;
@@ -49,16 +50,34 @@ contract DealSetup is Test {
             address(guardian)
         );
 
+        DealNFT.Configuration memory dealConfig = DealNFT.Configuration({
+            escrowToken: address(0),
+            sponsor: sponsor,
+            arbitrator: arbitrator,
+            image: "https://image.jpg",
+            description: "",
+            social: "",
+            website: "",
+            multiple: 1e18,
+            closingDelay: 0,
+            unstakingFee: 0,
+            closingTime: 0,
+            dealMinimum: 0,
+            dealMaximum: 0,
+            deliveryType: 0,
+            active: false,
+            cancelled: false,
+            transferable: false
+        });
+
         deal = new DealNFT(
+            treasury,
             address(registry),
             payable(address(implementation)),
-            sponsor,
-            treasury,
+            "https://test.com/chain/1/deal/",
             "SurgeDealTEST",
             "SRGTEST",
-            "https://test.com",
-            "https://image.jpg",
-            "description"
+            dealConfig
         );
 
         vm.prank(treasury);
@@ -74,7 +93,7 @@ contract DealSetup is Test {
 
     function _stake(address staker) internal {
         vm.prank(staker);
-        deal.stake(amount);
+        deal.stake(staker, amount);
     }
 
     function _setup() internal {
@@ -84,7 +103,7 @@ contract DealSetup is Test {
 
     function _configure() internal {
         vm.prank(sponsor);
-        deal.configure("desc", "https://social", "https://website", block.timestamp + 2 weeks, 0, 2000000);
+        deal.configure("desc", "https://social", "https://website", block.timestamp + 2 weeks, 0, 2000000, 5e18);
     }
 
     function _activate() internal {
@@ -93,13 +112,9 @@ contract DealSetup is Test {
     }
 
     function _depositDeliveryTokens() internal {
-        vm.prank(sponsor);
-        deal.setMultiple(5e18);
-
         vm.startPrank(arbitrator);
-        deal.setDeliveryToken(address(escrowToken));
         escrowToken.approve(address(deal), amount*3);
-        deal.depositDeliveryTokens(amount*3);
+        deal.depositDeliveryTokens(address(escrowToken), amount*3);
         vm.stopPrank();
     }
 }

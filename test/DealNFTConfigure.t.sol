@@ -4,6 +4,7 @@ pragma solidity 0.8.25;
 import {Test, console} from "forge-std/Test.sol";
 import {DealNFT} from "../src/DealNFT.sol";
 import {DealSetup} from "./DealSetup.sol";
+import {IERC20Metadata} from "openzeppelin/token/ERC20/extensions/IERC20Metadata.sol";
 
 contract DealNFTConfigureTest is Test, DealSetup {
     function setUp() public {
@@ -11,8 +12,6 @@ contract DealNFTConfigureTest is Test, DealSetup {
     }
 
     function test_Setup() public {
-        // constructor params
-        assertEq(deal.sponsor(), sponsor);
         assertEq(deal.name(), "SurgeDealTEST");
         assertEq(deal.symbol(), "SRGTEST");
         assertEq(uint256(deal.state()), uint256(DealNFT.State.Setup));
@@ -23,42 +22,47 @@ contract DealNFTConfigureTest is Test, DealSetup {
         assertEq(deal.totalClaimed(), 0);
 
         // before setup
-        assertEq(address(deal.escrowToken()), address(0));
+        DealNFT.Configuration memory configBefore = deal.getConfiguration();
+        assertEq(configBefore.sponsor, sponsor);
+        assertEq(address(configBefore.escrowToken), address(0));
         assertEq(deal.allowToken(address(escrowToken)), true);
-        assertEq(deal.closingDelay(), 0);
-        assertEq(deal.website(), "");
-        assertEq(deal.social(), "");
-        assertEq(deal.image(), "https://image.jpg");
+        assertEq(configBefore.closingDelay, 0);
+        assertEq(configBefore.website, "");
+        assertEq(configBefore.social, "");
+        assertEq(configBefore.image, "https://image.jpg");
 
         _setup();
 
         // after setup
-        assertEq(address(deal.escrowToken()), address(escrowToken));
+        DealNFT.Configuration memory configAfter = deal.getConfiguration();
+        assertEq(address(configAfter.escrowToken), address(escrowToken));
         assertEq(deal.allowToken(address(escrowToken)), false);
-        assertEq(deal.closingDelay(), 30 minutes);
-        assertEq(deal.social(), "https://social");
-        assertEq(deal.website(), "https://website");
-        assertEq(deal.image(), "https://image");
+        assertEq(configAfter.closingDelay, 30 minutes);
+        assertEq(configAfter.social, "https://social");
+        assertEq(configAfter.website, "https://website");
+        assertEq(configAfter.image, "https://image");
     }
 
     function test_Configure() public {
         _setup();
 
         // before config
-        assertEq(deal.description(), "");
-        assertEq(deal.closingTime(), 0);
-        assertEq(deal.transferable(), false);
-        assertEq(deal.dealMinimum(), 0);
-        assertEq(deal.dealMaximum(), 0);
+        DealNFT.Configuration memory configBefore = deal.getConfiguration();
+        assertEq(configBefore.description, "");
+        assertEq(configBefore.closingTime, 0);
+        assertEq(configBefore.transferable, false);
+        assertEq(configBefore.dealMinimum, 0);
+        assertEq(configBefore.dealMaximum, 0);
 
         _configure();
 
         // after config
-        assertEq(deal.description(), "desc");
-        assertEq(deal.closingTime(), block.timestamp + 2 weeks);
-        assertEq(deal.dealMinimum(), 0);
-        assertEq(deal.dealMaximum(), 2000000);
-        assertEq(deal.transferable(), false);
+        DealNFT.Configuration memory configAfter = deal.getConfiguration();
+        assertEq(configAfter.description, "desc");
+        assertEq(configAfter.closingTime, block.timestamp + 2 weeks);
+        assertEq(configAfter.dealMinimum, 0);
+        assertEq(configAfter.dealMaximum, 2000000);
+        assertEq(configAfter.transferable, false);
     }
 
     function test_Activate() public {
@@ -86,7 +90,7 @@ contract DealNFTConfigureTest is Test, DealSetup {
         _activate();
 
         vm.prank(sponsor);
-        deal.configure("a", "https://social", "https://website", block.timestamp + 2 weeks, 1, 1000);
+        deal.configure("a", "https://social", "https://website", block.timestamp + 2 weeks, 1, 1000, 1e18);
         skip(18 days);
 
         assertEq(uint256(deal.state()), uint256(DealNFT.State.Claiming));
@@ -95,27 +99,33 @@ contract DealNFTConfigureTest is Test, DealSetup {
     }
 
     function test_RevertWhen_ConfigureWithWrongSender() public {
-        vm.expectRevert("SRG020");
+        vm.expectRevert(DealNFT.OnlySponsor.selector);
         vm.prank(staker1);
-        deal.configure("a", "https://social", "https://website", block.timestamp + 2 weeks, 0, 1000);
+        deal.configure("a", "https://social", "https://website", block.timestamp + 2 weeks, 0, 1000, 1e18);
     }
 
     function test_ConfigureWithClosingTimeZero() public {
         vm.prank(sponsor);
-        deal.configure("a", "https://social", "https://website", 0, 0, 1000);
+        deal.configure("a", "https://social", "https://website", 0, 0, 1000, 1e18);
     }
 
     function test_RevertWhen_ConfigureWithBadClosingTime() public {
         _setup();
-        vm.expectRevert("SRG016");
+        vm.expectRevert(DealNFT.ClosingTimeTooSmall.selector);
         vm.prank(sponsor);
-        deal.configure("a", "https://social", "https://website", block.timestamp, 0, 1000);
+        deal.configure("a", "https://social", "https://website", block.timestamp, 0, 1000, 1e18);
     }
 
     function test_RevertWhen_ConfigureWithWrongRange() public {
-        vm.expectRevert("SRG031");
+        vm.expectRevert(DealNFT.BadStakesRange.selector);
         vm.prank(sponsor);
-        deal.configure("a", "https://social", "https://website", block.timestamp + 2 weeks, 1000, 999);
+        deal.configure("a", "https://social", "https://website", block.timestamp + 2 weeks, 1000, 999, 1e18);
+    }
+
+    function test_RevertWhen_SetMultiplierTooSmall() public {
+        vm.expectRevert(DealNFT.ZeroDetected.selector);
+        vm.prank(sponsor);
+        deal.configure("a", "https://social", "https://website", block.timestamp + 2 weeks, 1000, 1001, 1e17);
     }
 
     function test_RevertWhen_ConfigureWhenClosed() public {
@@ -123,7 +133,7 @@ contract DealNFTConfigureTest is Test, DealSetup {
         _configure();
         _activate();
         skip(4 weeks);
-        vm.expectRevert("SRG047");
+        vm.expectRevert(DealNFT.CannotConfigure.selector);
         _configure();
     }
 
@@ -136,39 +146,7 @@ contract DealNFTConfigureTest is Test, DealSetup {
         skip(17 days);
 
         assertEq(uint256(deal.state()), uint256(DealNFT.State.Claiming));
-        vm.expectRevert("SRG046");
+        vm.expectRevert(DealNFT.MinimumReached.selector);
         _configure();
-    }
-
-    function test_RevertWhen_SetMultiplierNotSponsor() public {
-        vm.expectRevert("SRG020");
-        vm.prank(staker1);
-        deal.setMultiple(2);
-    }
-
-    function test_RevertWhen_SetMultiplierWithClosedState() public {
-        _setup();
-        _configure();
-        _activate();
-
-        _stake(staker1);
-        skip(23 days);
-
-        vm.expectRevert("SRG047");
-        vm.prank(sponsor);
-        deal.setMultiple(2);
-    }
-
-    function test_RevertWhen_SetMultiplierWithClamingState() public {
-        _setup();
-        _configure();
-        _activate();
-
-        _stake(staker1);
-        skip(17 days);
-
-        vm.expectRevert("SRG046");
-        vm.prank(sponsor);
-        deal.setMultiple(2);
     }
 }
