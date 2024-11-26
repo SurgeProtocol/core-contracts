@@ -68,7 +68,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     using SafeERC20 for IERC20Metadata;
 
     // Events
-    event Setup(address escrowToken, uint256 closingDelay, uint256 unstakingFee, string web, string social, string image, string description, State state);
+    event Setup(address escrowToken, uint256 closingDelay, uint256 unstakingFee, string web, string social, string image, string description, uint256 deliveryType, State state);
     event Configure(string description, string social, string website, uint256 closingTime, uint256 dealMinimum, uint256 dealMaximum, State state);
     event Transferable(bool transferable);
     event SetStakersWhitelist(address whitelist);
@@ -85,6 +85,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
 
     // Enum for deal states
     enum State { Setup, Active, Claiming, Closed, Canceled }
+    enum DeliveryType { Venture, Community, Meme }
 
     uint256 private constant MAX_FEE = 1e5;
     uint256 private constant PRECISION = 1e6;
@@ -110,6 +111,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     uint256 public multiple;
     uint256 public deliveryAmount;
     uint256 public totalClaimed;
+    uint256 public deliveryType;
 
     IERC20Metadata public escrowToken;
     IERC20Metadata public deliveryToken;
@@ -234,7 +236,8 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         string memory social_,
         string memory website_,
         string memory image_,
-        string memory description_
+        string memory description_,
+        uint256 deliveryType_
     ) external onlySponsor {
         require(state() == State.Setup, "SRG030");
 
@@ -245,8 +248,9 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         website = website_;
         image = image_;
         description = description_;
+        deliveryType = deliveryType_;
 
-        emit Setup(address(escrowToken), closingDelay, unstakingFee, website, social, image, description, State.Setup);
+        emit Setup(address(escrowToken), closingDelay, unstakingFee, website, social, image, description, deliveryType, State.Setup);
     }
 
     /**

@@ -79,7 +79,7 @@ contract DealSetup is Test {
 
     function _setup() internal {
         vm.prank(sponsor);
-        deal.setup(address(escrowToken), 30 minutes, 50000, "https://social", "https://website", "https://image", "");
+        deal.setup(address(escrowToken), 30 minutes, 50000, "https://social", "https://website", "https://image", "", 1);
     }
 
     function _configure() internal {

@@ -53,7 +53,8 @@ contract Reader {
             escrowSymbol: _escrowSymbol,
             escrowDecimals: _escrowDecimals,
             claimed: _claimed,
-            transferable: dealInstance.transferable()
+            transferable: dealInstance.transferable(),
+            deliveryType: dealInstance.deliveryType()
         });
     }
 

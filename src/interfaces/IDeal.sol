@@ -43,6 +43,7 @@ interface IDeal {
         uint8 escrowDecimals;
         StakeData[] claimed;
         bool transferable;
+        uint256 deliveryType;
     }
 
     struct DealShortData {
@@ -77,4 +78,5 @@ interface IDeal {
     function symbol() external view returns (string memory);
     function image() external view returns (string memory);
     function getStakesTo(uint256 id) external view returns (StakeData[] memory);
+    function deliveryType() external view returns (uint256);
 }

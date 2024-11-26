@@ -95,7 +95,7 @@ contract DealNFTClaimTest is Test {
         escrowToken.approve(address(deal), amount);
 
         vm.startPrank(sponsor);
-        deal.setup(address(escrowToken), 30 minutes, 50000, "https://social", "https://website", "https://image", "desc");
+        deal.setup(address(escrowToken), 30 minutes, 50000, "https://social", "https://website", "https://image", "desc", 0);
         deal.configure("desc", "https://social", "https://website", block.timestamp + 2 weeks, 0, 2000000);
         deal.activate();
         vm.stopPrank();
