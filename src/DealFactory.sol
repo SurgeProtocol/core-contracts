@@ -6,7 +6,16 @@ import {StakingRelayer} from "./StakingRelayer.sol";
 
 contract DealFactory {
 
-    event Create(address indexed deal, address indexed sponsor, string name, string symbol, string image, string description);
+    event Create(
+        address indexed deal,
+        address indexed sponsor,
+        address arbitrator,
+        address escrowToken,
+        string name,
+        string symbol,
+        string image,
+        string description
+    );
 
     bool private _active;
     address private _relayer;
@@ -63,9 +72,18 @@ contract DealFactory {
             StakingRelayer(_relayer).enableDeal(address(deal));
         }
 
-        emit Create(address(deal), config_.sponsor, name_, symbol_, config_.image, config_.description);
+        emit Create(
+            address(deal),
+            config_.sponsor,
+            config_.arbitrator,
+            config_.escrowToken,
+            name_,
+            symbol_,
+            config_.image,
+            config_.description
+        );
 
-        return address(deal);
+       return address(deal);
     }
 
     function turnOff() external {

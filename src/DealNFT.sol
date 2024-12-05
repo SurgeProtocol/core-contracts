@@ -43,8 +43,9 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     error OwnerMismatch();
 
     // Events
-    event Setup(address escrowToken, uint256 closingDelay, uint256 unstakingFee, string web, string social, string image, string description, uint256 deliveryType, State state);
-    event Configure(string description, string social, string website, uint256 closingTime, uint256 dealMinimum, uint256 dealMaximum, uint256 multiple, State state);
+    event Init(string social, string website, uint256 multiple, uint256 closingDelay, uint256 unstakingFee, uint256 closingTime, uint256 dealMinimum, uint256 dealMaximum, uint256 deliveryType, bool active, bool transferable);
+    event Setup(address escrowToken, uint256 closingDelay, uint256 unstakingFee, string website, string social, string image, string description, uint256 deliveryType);
+    event Configure(string description, string social, string website, uint256 closingTime, uint256 dealMinimum, uint256 dealMaximum, uint256 multiple);
     event StateUpdated(State state);
     event Transferable(bool transferable);
     event ArbitratorUpdated(address indexed arbitrator);
@@ -155,6 +156,20 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         _registry = registry_;
         _implementation = implementation_;
         _nftURI = string.concat(nftURI_, Strings.toHexString(address(this)), "/token/");
+
+        emit Init(
+            config_.social,
+            config_.website,
+            config_.multiple,
+            config_.closingDelay,
+            config_.unstakingFee,
+            config_.closingTime,
+            config_.dealMinimum,
+            config_.dealMaximum,
+            config_.deliveryType,
+            config_.active,
+            config_.transferable
+        );
     }
 
     modifier onlyTreasury() {
@@ -209,7 +224,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         config.description = description_;
         config.deliveryType = deliveryType_;
 
-        emit Setup(escrowToken_, closingDelay_, unstakingFee_, website_, social_, image_, description_, deliveryType_, State.Setup);
+        emit Setup(escrowToken_, closingDelay_, unstakingFee_, website_, social_, image_, description_, deliveryType_);
     }
 
     /**
@@ -253,7 +268,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         config.dealMaximum = dealMaximum_;
         config.multiple = multiple_;
 
-        emit Configure(description_, social_, website_, closingTime_, dealMinimum_, dealMaximum_, multiple_, State.Active);
+        emit Configure(description_, social_, website_, closingTime_, dealMinimum_, dealMaximum_, multiple_);
     }
 
     function setArbitrator(address arbitrator_) external onlyTreasury {
