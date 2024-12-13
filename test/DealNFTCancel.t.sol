@@ -33,9 +33,23 @@ contract DealNFTCancelTest is Test, DealSetup {
         deal.cancel();
     }
 
-    function test_RevertWhen_CancelWhenClaiming() public {
+    function test_CancelWhenClaiming() public {
         skip(15 days);
         assertEq(uint(deal.state()), uint256(DealNFT.State.Claiming));
+
+        vm.prank(sponsor);
+        deal.cancel();
+        
+        assertEq(uint(deal.state()), uint256(DealNFT.State.Cancelled));
+    }
+
+    function test_RevertWhen_CancelWhenCancelled() public {
+        skip(15 days);
+
+        vm.prank(sponsor);
+        deal.cancel();
+
+        assertEq(uint(deal.state()), uint256(DealNFT.State.Cancelled));
 
         vm.expectRevert(DealNFT.CannotCancel.selector);
         vm.prank(sponsor);

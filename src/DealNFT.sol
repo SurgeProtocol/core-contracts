@@ -331,7 +331,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      */
     function cancel() external {
         if(msg.sender != config.sponsor && msg.sender != config.arbitrator) revert NotAuthorized();
-        if(state() > State.Active) revert CannotCancel();
+        if(state() > State.Claiming) revert CannotCancel();
         config.cancelled = true;
         emit StateUpdated(State.Cancelled);
     }
