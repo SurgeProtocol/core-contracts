@@ -87,6 +87,22 @@ contract DealNFTUnstakeTest is Test, DealSetup {
     }
 
     function test_RevertWhen_UnstakeAfterClosed() public {
-        // TODO
+        _stake(staker1);
+        _stake(staker2);
+        _stake(arbitrator);
+
+        skip(15 days);
+        assertEq(uint256(deal.state()), uint256(DealNFT.State.Claiming));
+
+        vm.expectRevert(DealNFT.MinimumReached.selector);
+        vm.prank(staker1);
+        deal.recover(0);
+
+        vm.prank(arbitrator);
+        deal.claim();
+
+        vm.expectRevert(DealNFT.CannotUnstake.selector);
+        vm.prank(arbitrator);
+        deal.unstake(2);
     }
 }

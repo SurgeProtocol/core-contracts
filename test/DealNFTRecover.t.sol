@@ -78,6 +78,25 @@ contract DealNFTRecoverTest is Test, DealSetup {
     }
 
     function test_RecoverAfterClosed() public {
-        // TODO
+        _stake(staker1);
+        _stake(staker2);
+        _stake(arbitrator);
+
+        skip(15 days);
+        assertEq(uint256(deal.state()), uint256(DealNFT.State.Claiming));
+
+        vm.expectRevert(DealNFT.MinimumReached.selector);
+        vm.prank(staker1);
+        deal.recover(0);
+
+        vm.prank(arbitrator);
+        deal.claim();
+
+        assertEq(deal.totalClaimed(), amount * 2);
+
+        uint256 balance = escrowToken.balanceOf(arbitrator);
+        vm.prank(arbitrator);
+        deal.recover(2);
+        assertEq(escrowToken.balanceOf(arbitrator), balance + amount);
     }
 }

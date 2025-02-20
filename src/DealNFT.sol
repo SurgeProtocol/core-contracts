@@ -476,7 +476,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
             return State.Claiming;
         } else {
             if(_minimumReached()) {
-                if(_afterClosed(lastStakeTimestamp)){
+                if(_afterClosed(lastStakeTimestamp)){ // ---
                     return State.Cancelled;
                 }
 
@@ -587,7 +587,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @notice Check if the minimum has been reached
      */
     function _minimumReached() private view returns (bool) {
-        return _totalStaked(_tokenId) >= config.dealMinimum;
+        return config.dealMinimum > 0 &&  _totalStaked(_tokenId) >= config.dealMinimum;
     }
 
     /**
