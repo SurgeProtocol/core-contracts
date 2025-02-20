@@ -44,6 +44,7 @@ contract Reader {
             dealMaximum: config.dealMaximum,
             deliveryType: config.deliveryType,
             transferable: config.transferable,
+            timeBasedClosing: config.timeBasedClosing,
             stakersWhitelist: dealInstance.stakersWhitelist(),
             claimsWhitelist: dealInstance.claimsWhitelist(),
             deliveryToken: address(dealInstance.deliveryToken()),

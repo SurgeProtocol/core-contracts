@@ -61,11 +61,11 @@ contract DealNFTRecoverTest is Test, DealSetup {
         assertEq(escrowToken.balanceOf(staker1), amount);
     }
 
-    function test_RecoverAfterClosed() public {
+    function test_RecoverAfterExpired() public {
         _stake(staker1);
 
         skip(22 days);
-        assertEq(uint(deal.state()), uint256(DealNFT.State.Closed));
+        assertEq(uint(deal.state()), uint256(DealNFT.State.Cancelled));
         
         assertEq(escrowToken.balanceOf(address(deal.getTokenBoundAccount(0))), amount);
         assertEq(escrowToken.balanceOf(staker1), 0);
@@ -75,5 +75,9 @@ contract DealNFTRecoverTest is Test, DealSetup {
 
         assertEq(escrowToken.balanceOf(address(deal.getTokenBoundAccount(0))), 0);
         assertEq(escrowToken.balanceOf(staker1), amount);
+    }
+
+    function test_RecoverAfterClosed() public {
+        // TODO
     }
 }

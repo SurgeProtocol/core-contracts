@@ -43,8 +43,8 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     error OwnerMismatch();
 
     // Events
-    event Init(string social, string website, uint256 multiple, uint256 closingDelay, uint256 unstakingFee, uint256 closingTime, uint256 dealMinimum, uint256 dealMaximum, uint256 deliveryType, bool active, bool transferable);
-    event Setup(address escrowToken, uint256 closingDelay, uint256 unstakingFee, string website, string social, string image, string description, uint256 deliveryType);
+    event Init(string social, string website, uint256 multiple, uint256 closingDelay, uint256 unstakingFee, uint256 closingTime, uint256 dealMinimum, uint256 dealMaximum, uint256 deliveryType, bool active, bool transferable, bool timeBasedClosing);
+    event Setup(address escrowToken, uint256 closingDelay, uint256 unstakingFee, uint256 dealMinimum, uint256 dealMaximum, string website, string social, string image, string description, uint256 deliveryType);
     event Configure(string description, string social, string website, uint256 closingTime, uint256 dealMinimum, uint256 dealMaximum, uint256 multiple);
     event StateUpdated(State state);
     event Transferable(bool transferable);
@@ -81,6 +81,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     IWhitelist public stakersWhitelist;
     IWhitelist public claimsWhitelist;
 
+    uint256 lastStakeTimestamp;
     mapping(uint256 tokenId => uint256) public stakedAmount;
     mapping(uint256 tokenId => uint256) public claimedAmount;
     mapping(address staker => uint256) public stakes;
@@ -110,6 +111,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         bool active;
         bool cancelled;
         bool transferable;
+        bool timeBasedClosing;
     }
 
     Configuration private config;
@@ -142,7 +144,9 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         if(bytes(symbol_).length == 0) revert ZeroDetected();
 
         if(config_.sponsor == ADDRESS_ZERO) revert ZeroDetected();
-        _validClosingTime(config_.closingTime, config_.closingDelay);
+        if(config_.timeBasedClosing) {
+            _validClosingTime(config_.closingTime, config_.closingDelay);
+        }
         if(config_.dealMinimum > config_.dealMaximum) revert BadStakesRange();
         if(config_.multiple < 1e18) revert ZeroDetected();
 
@@ -168,7 +172,8 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
             config_.dealMaximum,
             config_.deliveryType,
             config_.active,
-            config_.transferable
+            config_.transferable,
+            config_.timeBasedClosing
         );
     }
 
@@ -207,6 +212,8 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         address escrowToken_,
         uint256 closingDelay_,
         uint256 unstakingFee_,
+        uint256 dealMinimum_,
+        uint256 dealMaximum_,
         string memory social_,
         string memory website_,
         string memory image_,
@@ -214,17 +221,20 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         uint256 deliveryType_
     ) external onlySponsor {
         if(state() != State.Setup) revert CannotSetup();
+        if(dealMinimum_ > dealMaximum_) revert BadStakesRange();
 
         config.escrowToken = escrowToken_;
         config.closingDelay = closingDelay_;
         config.unstakingFee = unstakingFee_;
+        config.dealMinimum = dealMinimum_;
+        config.dealMaximum = dealMaximum_;
         config.social = social_;
         config.website = website_;
         config.image = image_;
         config.description = description_;
         config.deliveryType = deliveryType_;
 
-        emit Setup(escrowToken_, closingDelay_, unstakingFee_, website_, social_, image_, description_, deliveryType_);
+        emit Setup(escrowToken_, closingDelay_, unstakingFee_, dealMaximum_, dealMinimum_, website_, social_, image_, description_, deliveryType_);
     }
 
     /**
@@ -255,17 +265,22 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         uint256 dealMaximum_,
         uint256 multiple_
     ) external onlySponsor {
-        _canConfigure();
-        _validClosingTime(closingTime_, config.closingDelay);
-        if(dealMinimum_ > dealMaximum_) revert BadStakesRange();
+        _canConfigure();        
         if(multiple_ < 1e18) revert ZeroDetected();
+
+        if(config.timeBasedClosing) {
+            _validClosingTime(closingTime_, config.closingDelay);
+            if(dealMinimum_ > dealMaximum_) revert BadStakesRange();
+
+            config.dealMinimum = dealMinimum_;
+            config.dealMaximum = dealMaximum_;
+            config.closingTime = closingTime_;
+        }
 
         config.description = description_;
         config.social = social_;
         config.website = website_;
-        config.closingTime = closingTime_;
-        config.dealMinimum = dealMinimum_;
-        config.dealMaximum = dealMaximum_;
+
         config.multiple = multiple_;
 
         emit Configure(description_, social_, website_, closingTime_, dealMinimum_, dealMaximum_, multiple_);
@@ -301,9 +316,6 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      * @param transferable_ Boolean indicating if NFTs are transferable
      */
     function setTransferable(bool transferable_) external onlyArbitrator {
-        if(state() == State.Cancelled) revert CannotConfigure();
-        if(_afterClosed()) revert CannotConfigure();
-
         config.transferable = transferable_;
         emit Transferable(transferable_);
     }
@@ -374,7 +386,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         if(state() < State.Claiming) revert CannotRecover();
 
         if(state() == State.Claiming) {
-            if(_totalStaked(_tokenId) >= config.dealMinimum) revert MinimumReached();
+            if(_minimumReached()) revert MinimumReached();
         }
 
         AccountV3TBD tokenBoundAccount = getTokenBoundAccount(tokenId);
@@ -449,17 +461,31 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
      */
     function state() public view returns (State) {
         if(config.cancelled) return State.Cancelled;
+        if(_isClaimed()) return State.Closed;
 
-        if(_beforeClose()) {
+        if(config.timeBasedClosing){
+            if(_afterClosed(config.closingTime)) {
+                return State.Cancelled;
+            }
+
+            if(_beforeClose()) {
+                if(config.active) return State.Active;
+                return State.Setup;
+            }
+
+            return State.Claiming;
+        } else {
+            if(_minimumReached()) {
+                if(_afterClosed(lastStakeTimestamp)){
+                    return State.Cancelled;
+                }
+
+                return State.Claiming;
+            }
+
             if(config.active) return State.Active;
             return State.Setup;
         }
-
-        if(_afterClosed()) return State.Closed;
-
-        if(_isClaimed()) return State.Closed;
-
-        return State.Claiming;
     }
 
     /** 
@@ -558,6 +584,13 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     }
 
     /**
+     * @notice Check if the minimum has been reached
+     */
+    function _minimumReached() private view returns (bool) {
+        return _totalStaked(_tokenId) >= config.dealMinimum;
+    }
+
+    /**
      * @notice Check if all tokens have been claimed by the sponsor
      */
     function _isClaimed() private view returns (bool) {
@@ -574,8 +607,8 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     /**
      * @notice Check if the current time is after closing time
      */
-    function _afterClosed() private view returns (bool) {
-        return config.closingTime > 0 && block.timestamp > (config.closingTime + CLAIMING_PERIOD);
+    function _afterClosed(uint256 since) private view returns (bool) {
+        return since > 0 && block.timestamp > (since + CLAIMING_PERIOD);
     }
 
     /**
@@ -625,7 +658,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     function _canClaim() internal view {
         if(_claimId == _tokenId) revert TokenOutOfBounds();
         if(state() != State.Claiming) revert NotInClaimingState();
-        if(_totalStaked(_tokenId) < config.dealMinimum) revert MinimumNotReached();
+        if(!_minimumReached()) revert MinimumNotReached();
     }
 
     /**
@@ -634,14 +667,16 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
     function _canConfigure() internal view {
         if(state() >= State.Closed) revert CannotConfigure();
         if(state() == State.Claiming) {
-            if(_totalStaked(_tokenId) >= config.dealMinimum) revert MinimumReached();
+            if(_minimumReached()) revert MinimumReached();
         }
     }
 
     function _validateActivation() internal view {
         if(config.escrowToken == ADDRESS_ZERO) revert ZeroDetected();
-        if(config.closingDelay <= 0) revert ZeroDetected();
-        if(config.closingDelay > MAX_CLOSING_RANGE) revert ClosingDelayTooBig();
+        if(config.timeBasedClosing) {
+            if(config.closingDelay <= 0) revert ZeroDetected();
+            if(config.closingDelay > MAX_CLOSING_RANGE) revert ClosingDelayTooBig();
+        }
         if(config.unstakingFee > MAX_FEE) revert ClosingFeeTooBig();
         if(bytes(config.website).length == 0) revert ZeroDetected();
         if(bytes(config.social).length == 0) revert ZeroDetected();
@@ -670,6 +705,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
         uint256 newTokenId = _tokenId++;
         stakedAmount[newTokenId] = amount;
         stakes[staker] = currentStake;
+        lastStakeTimestamp = block.timestamp;
 
         _safeMint(staker, newTokenId);
 

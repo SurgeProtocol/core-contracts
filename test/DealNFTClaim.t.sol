@@ -81,7 +81,8 @@ contract DealNFTClaimTest is Test {
             deliveryType: 0,
             active: false,
             cancelled: false,
-            transferable: false
+            transferable: false,
+            timeBasedClosing: true
         });
 
         deal = new DealNFT(
@@ -113,7 +114,7 @@ contract DealNFTClaimTest is Test {
         escrowToken.approve(address(deal), amount);
 
         vm.startPrank(sponsor);
-        deal.setup(address(escrowToken), 30 minutes, 50000, "https://social", "https://website", "https://image", "desc", 0);
+        deal.setup(address(escrowToken), 30 minutes, 50000, 0, 0, "https://social", "https://website", "https://image", "desc", 0);
         deal.configure("desc", "https://social", "https://website", block.timestamp + 2 weeks, 0, 2000000, 1e18);
         deal.activate();
         vm.stopPrank();
