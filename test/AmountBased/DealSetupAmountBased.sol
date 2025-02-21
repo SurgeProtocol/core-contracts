@@ -102,20 +102,9 @@ contract DealSetupAmountBased is Test {
         deal.setup(address(escrowToken), 30 minutes, 50000, 2000000, 2000000, "https://social", "https://website", "https://image", "", 1);
     }
 
-    function _configure() internal {
-        vm.prank(sponsor);
-        deal.configure("desc", "https://social", "https://website", 0, 0, 0, 5e18);
-    }
-
     function _activate() internal {
         vm.prank(sponsor);
         deal.activate();
     }
 
-    function _depositDeliveryTokens() internal {
-        vm.startPrank(arbitrator);
-        escrowToken.approve(address(deal), amount*3);
-        deal.depositDeliveryTokens(address(escrowToken), amount*3);
-        vm.stopPrank();
-    }
 }
