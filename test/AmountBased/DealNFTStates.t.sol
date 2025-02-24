@@ -12,6 +12,21 @@ contract DealNFTStatesTest is Test, DealSetupAmountBased {
         _activate();
     }
 
+    function test_State_Active() public {
+        assertEq(uint256(deal.state()), uint256(DealNFT.State.Active));
+        skip(3 weeks);
+        assertEq(uint256(deal.state()), uint256(DealNFT.State.Active));
+
+        _stake(staker1);
+        assertEq(uint256(deal.state()), uint256(DealNFT.State.Active));
+
+        skip(2 weeks);
+        assertEq(uint256(deal.state()), uint256(DealNFT.State.Active));
+
+        _stake(staker2);
+        assertEq(uint256(deal.state()), uint256(DealNFT.State.Claiming));
+    }
+
     function test_State_Claiming() public {
         assertEq(uint256(deal.state()), uint256(DealNFT.State.Active));
 

@@ -476,7 +476,7 @@ contract DealNFT is ERC721, IDealNFT, ReentrancyGuard {
             return State.Claiming;
         } else {
             if(_minimumReached()) {
-                if(_afterClosed(lastStakeTimestamp)){ // ---
+                if(_afterClosed(lastStakeTimestamp)){
                     return State.Cancelled;
                 }
 
