@@ -5,6 +5,8 @@ struct Deal {
     address sponsor;
     address arbitrator;
     address escrowToken;
+    address stakersWhitelist;
+    address claimsWhitelist;
     string escrowSymbol;
     uint8 escrowDecimals;
     string name;
@@ -21,6 +23,7 @@ struct Deal {
     uint256 dealMaximum;
     uint256 deliveryType;
     bool transferable;
+    bool timeBasedClosing;
 
     // calculated
     uint8 state;
