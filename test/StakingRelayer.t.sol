@@ -41,6 +41,13 @@ contract StakingRelayerTest is Test, DealSetup {
         assertEq(escrowToken.balanceOf(staker2), 0);
     }
 
+    function test_EnableDealWithOwner() public {
+        vm.prank(treasury);
+        relayer.enableDeal(address(deal));
+
+        assert(relayer.enabledDeals(address(deal)));
+    }
+
     function test_RevertWhen_StakeWithStakingRelayerBeforeEnable() public {
         vm.startPrank(staker1);
         escrowToken.approve(address(relayer), amount);
@@ -87,6 +94,12 @@ contract StakingRelayerTest is Test, DealSetup {
         vm.expectRevert("StakingRelayer: not owner");
         vm.prank(staker1);
         relayer.disableDeal(address(deal));
+    }
+
+    function test_RevertWhen_setFactoryWithWrongSender() public {
+        vm.expectRevert("StakingRelayer: not owner");
+        vm.prank(staker1);
+        relayer.setFactory(staker1);
     }
 
     function _stake(address staker, uint256 amount_) internal {

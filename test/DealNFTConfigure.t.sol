@@ -60,7 +60,7 @@ contract DealNFTConfigureTest is Test, DealSetup {
         DealNFT.Configuration memory configAfter = deal.getConfiguration();
         assertEq(configAfter.description, "desc");
         assertEq(configAfter.closingTime, block.timestamp + 2 weeks);
-        assertEq(configAfter.dealMinimum, 0);
+        assertEq(configAfter.dealMinimum, 1000000);
         assertEq(configAfter.dealMaximum, 2000000);
         assertEq(configAfter.transferable, false);
     }

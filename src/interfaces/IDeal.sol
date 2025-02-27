@@ -44,6 +44,7 @@ interface IDeal {
         uint8 escrowDecimals;
         StakeData[] claimed;
         bool transferable;
+        bool timeBasedClosing;
         uint256 deliveryType;
     }
 

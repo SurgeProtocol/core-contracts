@@ -1,4 +1,3 @@
-
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
@@ -9,6 +8,7 @@ import "./gen_helpers.sol";
 
 interface IDeal {
     function totalStaked() external view returns (uint256);
+    function state() external view returns (uint8);
 }
 
 interface IERC20 {
@@ -23,8 +23,8 @@ contract MyIndex is GhostGraph {
     using StringHelpers for address;
 
     function registerHandles() external {
-        graph.registerFactory(0xA831B98cD0190bC973cAfd0551BfCfed0Ff3f510, GhostEventName.Create, "deal");
-        graph.registerHandle(0xA831B98cD0190bC973cAfd0551BfCfed0Ff3f510);
+        graph.registerFactory(0xB59392C43F454D505CB2ead541a5BFeF3858b1E7, GhostEventName.Create, "deal");
+        graph.registerHandle(0xB59392C43F454D505CB2ead541a5BFeF3858b1E7);
     }
 
     function onCreate(EventDetails memory details, CreateEvent memory ev) external {
@@ -61,8 +61,9 @@ contract MyIndex is GhostGraph {
         deal.dealMaximum = ev.dealMaximum;
         deal.deliveryType = ev.deliveryType;
         deal.transferable = ev.transferable;
+        deal.timeBasedClosing = ev.timeBasedClosing;
 
-        if(ev.active){
+        if (ev.active) {
             deal.state = 1;
         }
 
@@ -83,6 +84,8 @@ contract MyIndex is GhostGraph {
         deal.image = ev.image;
         deal.description = ev.description;
         deal.deliveryType = ev.deliveryType;
+        deal.dealMinimum = ev.dealMinimum;
+        deal.dealMaximum = ev.dealMaximum;
 
         graph.saveDeal(deal);
     }
@@ -117,7 +120,7 @@ contract MyIndex is GhostGraph {
         Deal memory deal = graph.getDeal(details.emitter);
         deal.state = ev.state;
         graph.saveDeal(deal);
-    } 
+    }
 
     function onStake(EventDetails memory details, StakeEvent memory ev) external {
         // DEAL
@@ -125,6 +128,7 @@ contract MyIndex is GhostGraph {
         deal.totalStaked = IDeal(details.emitter).totalStaked();
         deal.lastStakeTime = details.timestamp;
         deal.lastStakeTxHash = details.transactionHash;
+        deal.state = IDeal(details.emitter).state();
         graph.saveDeal(deal);
 
         // STAKE
@@ -167,8 +171,20 @@ contract MyIndex is GhostGraph {
         graph.saveStake(stake);
     }
 
+    function onSetStakersWhitelist(EventDetails memory details, SetStakersWhitelistEvent memory ev) external {
+        Deal memory deal = graph.getDeal(details.emitter);
+        deal.stakersWhitelist = ev.whitelist;
+        graph.saveDeal(deal);
+    }
+
+    function onSetClaimsWhitelist(EventDetails memory details, SetClaimsWhitelistEvent memory ev) external {
+        Deal memory deal = graph.getDeal(details.emitter);
+        deal.claimsWhitelist = ev.whitelist;
+        graph.saveDeal(deal);
+    }
+
     // HELPER
-    function getStakeId(address deal, uint256 token) private returns(string memory){
+    function getStakeId(address deal, uint256 token) private returns (string memory) {
         return string(abi.encodePacked(deal.toString(), ":", token.toString()));
     }
 }

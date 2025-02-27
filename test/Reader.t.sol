@@ -34,7 +34,7 @@ contract ReaderTest is Test, DealSetup {
         assertEq(_deal.totalClaimed, 0);
         assertEq(_deal.totalStaked, 2000000);
         assertEq(_deal.multiple, 5e18);
-        assertEq(_deal.dealMinimum, 0);
+        assertEq(_deal.dealMinimum, 1000000);
         assertEq(_deal.dealMaximum, 2000000);
         assertEq(_deal.unstakingFee, 50000);
         assertEq(_deal.nextId, 2);

@@ -2,8 +2,8 @@
 pragma solidity 0.8.25;
 
 import {Test, console} from "forge-std/Test.sol";
-import {DealNFT} from "../src/DealNFT.sol";
-import {AccountV3TBD} from "../src/AccountV3TBD.sol";
+import {DealNFT} from "../../src/DealNFT.sol";
+import {AccountV3TBD} from "../../src/AccountV3TBD.sol";
 
 import "multicall-authenticated/Multicall3.sol";
 import "erc6551/ERC6551Registry.sol";
@@ -13,7 +13,7 @@ import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
 import {ERC20PresetFixedSupply} from "openzeppelin/token/ERC20/presets/ERC20PresetFixedSupply.sol";
 import {IERC20Metadata} from "openzeppelin/token/ERC20/extensions/IERC20Metadata.sol";
 
-contract DealSetup is Test {
+contract DealSetupAmountBased is Test {
     DealNFT public deal;
     IERC20Metadata public escrowToken;
 
@@ -68,7 +68,7 @@ contract DealSetup is Test {
             active: false,
             cancelled: false,
             transferable: false,
-            timeBasedClosing: true
+            timeBasedClosing: false
         });
 
         deal = new DealNFT(
@@ -90,8 +90,6 @@ contract DealSetup is Test {
         vm.prank(staker2);
         escrowToken.approve(address(deal), amount);
 
-        vm.prank(arbitrator);
-        escrowToken.approve(address(deal), amount);
     }
 
     function _stake(address staker) internal {
@@ -101,12 +99,7 @@ contract DealSetup is Test {
 
     function _setup() internal {
         vm.prank(sponsor);
-        deal.setup(address(escrowToken), 30 minutes, 50000, 0, 0, "https://social", "https://website", "https://image", "", 1);
-    }
-
-    function _configure() internal {
-        vm.prank(sponsor);
-        deal.configure("desc", "https://social", "https://website", block.timestamp + 2 weeks, 1000000, 2000000, 5e18);
+        deal.setup(address(escrowToken), 30 minutes, 50000, 2000000, 2000000, "https://social", "https://website", "https://image", "", 1);
     }
 
     function _activate() internal {
@@ -114,10 +107,4 @@ contract DealSetup is Test {
         deal.activate();
     }
 
-    function _depositDeliveryTokens() internal {
-        vm.startPrank(arbitrator);
-        escrowToken.approve(address(deal), amount*3);
-        deal.depositDeliveryTokens(address(escrowToken), amount*3);
-        vm.stopPrank();
-    }
 }
